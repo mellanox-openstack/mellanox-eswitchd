@@ -15,20 +15,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nova.openstack.common import log as logging
-from utils import pci_utils
-from utils.command_utils import execute
-from db import eswitch_db
-from resource_mngr import ResourceManager 
+#from nova.openstack.common import log as logging
+import logging
+from acl_handler import EthtoolAclHandler
 from common.exceptions import MlxException
 from common import constants
+from db import eswitch_db
+from resource_mngr import ResourceManager 
+from utils import pci_utils
+from utils.command_utils import execute
 
 DEFAULT_MAC_ADDRESS = '00:00:00:00:00:01'
-LOG = logging.getLogger('mlnx_daemon')
+LOG = logging.getLogger('eswitchd')
+ACL_REF = 0
 #LOG = logging.getLogger(__name__)
 
 class eSwitchHandler(object):
     def __init__(self,fabrics=None):
+        self.acl_handler = EthtoolAclHandler()
         self.eswitches = {}
         self.pci_utils = pci_utils.pciUtils()
         self.rm = ResourceManager()
@@ -118,9 +122,11 @@ class eSwitchHandler(object):
                 try:
                     dev = self.rm.allocate_device(fabric, vnic_type)
                     if eswitch.attach_vnic(dev, device_id, vnic_mac):
+                        pf, vf_index = self._get_device_pf_vf(fabric, vnic_type, dev)
                         if vnic_type == constants.VIF_TYPE_HOSTDEV:
-                            pf, vf_index = self._get_device_pf_vf(fabric, vnic_type, dev)
                             self._config_vf_mac_address(pf, vf_index, vnic_mac)
+                        acl_rules = eswitch.get_acls_for_vnic(vnic_mac)
+                        self.acl_handler.set_acl_rules(pf, acl_rules)
                     else:
                         raise MlxException('Failed to attach vnic')
                 except (RuntimeError, MlxException):
@@ -142,7 +148,6 @@ class eSwitchHandler(object):
             LOG.error("No eSwitch found for Fabric %s",fabric)
         return dev
 
-         
     def delete_port(self, fabric, vnic_mac):
         """
         @note: Free Virtual function associated with vNIC MAc
@@ -189,21 +194,68 @@ class eSwitchHandler(object):
             state = eswitch.get_port_state(dev)
             if dev:
                 if state in (constants.VPORT_STATE_ATTACHED, constants.VPORT_STATE_UNPLUGGED):
+                    priority = eswitch.get_priority(vnic_mac)
                     vnic_type = eswitch.get_port_type(dev)
                     pf, vf_index = self._get_device_pf_vf(fabric, vnic_type, dev)
-                    if pf and vf_index:
+                    if pf and vf_index is not None:
                         try:
                             if vnic_type == constants.VIF_TYPE_DIRECT:
-                                self._config_vlan_priority_direct(pf, vf_index, dev, vlan)
+                                self._config_vlan_priority_direct(pf, vf_index, dev, vlan, priority)
                             else:
-                                self._config_vlan_priority_hostdev(pf, vf_index, dev, vlan)
+                                self._config_vlan_priority_hostdev(pf, vf_index, dev, vlan, priority)
                             return True
                         except RuntimeError:
                             LOG.error('Set VLAN operation failed')    
                     else:
-                        LOG.error('Invalid VF/PF index for device %s',dev)         
+                        LOG.error('Invalid VF/PF index for device %s,PF-%s,VF Index - %s',dev, pf, vf_index)         
         return False           
-            
+    
+    def set_priority(self, fabric, vnic_mac, priority):
+        ret = False
+        eswitch = self._get_vswitch_for_fabric(fabric)
+        if eswitch:
+            vlan = eswitch.set_priority(vnic_mac, priority)
+            if vlan:
+                ret = self.set_vlan(fabric, vnic_mac, vlan)
+        return ret
+                
+    def set_acl_rule(self, fabric, vnic_mac, params):
+        eswitch = self._get_vswitch_for_fabric(fabric)
+        if eswitch:
+            pf = self.rm.get_fabric_pf(fabric)
+            flow_id, acl_rule = self.acl_handler.build_acl_rule(params)
+            if acl_rule:
+                eswitch.set_acl_rule(vnic_mac, acl_rule, flow_id)
+                vnic_state = eswitch.get_vnic_state(vnic_mac)
+                if vnic_state in  (constants.VPORT_STATE_ATTACHED,constants.VPORT_STATE_PENDING):
+                    try:
+                        acl_ref = self.acl_handler.set_acl_rule(pf, acl_rule)
+                        eswitch.update_acl_rule_ref(flow_id, acl_ref)
+                        return True
+                    except RuntimeError:
+                        LOG.error('Failed to set ACL rule flow_id-%s', flow_id)
+        return False
+        
+    def delete_acl_rule(self, fabric, flow_id):
+        eswitch = self._get_vswitch_for_fabric(fabric)
+        if eswitch:
+            pf = self.rm.get_fabric_pf(fabric)
+            (ref, vnic_mac) = eswitch.del_acl_rule(flow_id)
+            if ref:
+                try:
+                    self.acl_handler.del_acl_rule(pf, ref)
+                    return True
+                except RuntimeError:
+                    LOG.error('Failed to delete ACL flow_id-%s', flow_id)
+        return False
+    
+    def update_flow_id(self, fabric, old_flow_id, new_flow_id):
+        ret = False
+        eswitch = self._get_vswitch_for_fabric(fabric)
+        if eswitch:
+            ret = eswitch.update_flow_id(old_flow_id, new_flow_id)
+        return ret
+
     def _get_vswitch_for_fabric(self, fabric):
         if fabric in self.eswitches:
             return self.eswitches[fabric]
@@ -229,7 +281,7 @@ class eSwitchHandler(object):
     def _config_vlan_priority_hostdev(self, pf, vf_index, dev, vlan,priority='0'):
         cmd = ['ip', 'link','set',pf , 'vf', vf_index, 'vlan', vlan, 'qos', priority]
         execute(cmd, root_helper='sudo')
-
+        
     def _config_port_down(self,dev):
         cmd = ['ip', 'link', 'set', dev, 'down']       
         execute(cmd, root_helper='sudo')
@@ -237,4 +289,6 @@ class eSwitchHandler(object):
     def _config_port_up(self,dev):
         cmd = ['ip', 'link', 'set', dev, 'up']       
         execute(cmd, root_helper='sudo')        
-        
+#        
+
+

@@ -20,12 +20,13 @@ import json
 import sys
 import zmq
 from oslo.config import cfg
-from nova.openstack.common import log as logging
+#from nova.openstack.common import log as logging
+import logging
 from common import config
 import msg_handler as message
 from eswitch_handler import eSwitchHandler
 
-LOG = logging.getLogger('mlnx_daemon')
+LOG = logging.getLogger('eswitchd')
    
 class MlxEswitchDaemon(object):   
     def __init__(self):
@@ -100,8 +101,7 @@ class MlxEswitchDaemon(object):
                 polling_counter+=1
             
 def main():
-    cfg.CONF(project='mlnx_daemon')
-    logging.setup('mlnx_daemon')
+    cfg.CONF(project='eswitchd')
     try:
         daemon = MlxEswitchDaemon()
         daemon.start()

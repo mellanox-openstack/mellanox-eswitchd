@@ -15,9 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nova.openstack.common import log as logging
+#from nova.openstack.common import log as logging
+import logging
 
-LOG = logging.getLogger('mlnx_daemon')
+LOG = logging.getLogger('eswitchd')
 
 class DeviceDB():
     def __init__(self):

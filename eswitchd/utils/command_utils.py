@@ -19,9 +19,10 @@ import os
 import shlex
 import subprocess
 
-from nova.openstack.common import log as logging
+#from nova.openstack.common import log as logging
+import logging
 
-LOG = logging.getLogger('mlnx_daemon')
+LOG = logging.getLogger('eswitchd')
 
 
 def execute(cmd, root_helper=None, process_input=None, addl_env=None,

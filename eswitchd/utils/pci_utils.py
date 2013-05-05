@@ -17,10 +17,11 @@
 
 import os
 import re
-from nova.openstack.common import log as logging
-from utils.command_utils import execute
+#from nova.openstack.common import log as logging
+import logging
+from command_utils import execute
 
-LOG = logging.getLogger('mlnx_daemon')
+LOG = logging.getLogger('eswitchd')
 
 class pciUtils:
     VF_PF_NETDEV =  "/sys/bus/pci/devices/VF/physfn/net"

@@ -20,12 +20,13 @@ import glob
 import libvirt
 from lxml import etree
 import os
-from nova.openstack.common import log as logging
+#from nova.openstack.common import log as logging
+import logging
 from utils.pci_utils import pciUtils
 from db import device_db
 from common.exceptions import MlxException
 
-LOG = logging.getLogger('mlnx_daemon')
+LOG = logging.getLogger('eswitchd')
 
 NET_PATH = "/sys/class/net/"
 
@@ -51,8 +52,8 @@ class ResourceManager:
             interfaces = tree.xpath("devices/interface")
             hostdevs   = tree.xpath("devices/hostdev/source/address")
             
-            devices['hostdev'] = self._get_attached_hostdevs(hostdevs)
-            devices['direct']  = self._get_attached_interfaces(interfaces)
+            devices['hostdev'].extend(self._get_attached_hostdevs(hostdevs))
+            devices['direct'].extend(self._get_attached_interfaces(interfaces))
         return devices
 
     def get_fabric_pf(self,fabric):
