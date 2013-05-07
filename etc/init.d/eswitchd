@@ -2,15 +2,14 @@
 #
 # eswitchd  Mellanox Eswitch Daemon 
 #
-# chkconfig:   - 98 02
-# description: Support VLANs using Linux bridging
+# chkconfig:   - 99 02
+# description: Mellanox Eswitch Daemon
 ### END INIT INFO
 
 . /etc/rc.d/init.d/functions
 
 proj=eswitchd
 prog=$proj
-#exec="/usr/bin/$prog"
 exec="/usr/bin/eswitchd"
 config="/etc/$proj/eswitchd.conf"
 pidfile="/var/run/$proj/$prog.pid"
@@ -24,11 +23,13 @@ start() {
     [ -x $exec ] || exit 5
     [ -f $config ] || exit 6
     echo -n $"Starting $prog: "
-    #daemon --user quantum --pidfile $pidfile "$exec --log-file /var/log/$proj/$plugin.log --config-file /etc/$proj/$proj.conf --config-file $config &>/dev/null & echo \$! > $pidfile"
     daemon --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf &>/dev/null & echo \$! > $pidfile"
     retval=$?
     echo
     [ $retval -eq 0 ] && touch $lockfile
+    if [ $retval -eq 0 ] && [ "$START_LRI" = 'yes' ];then
+        start_lri
+    fi
     return $retval
 }
 
@@ -38,7 +39,28 @@ stop() {
     retval=$?
     echo
     [ $retval -eq 0 ] && rm -f $lockfile
+    if [ $START_LRI == 'yes' ];then
+        stop_lri
+    fi
     return $retval
+}
+
+start_lri() {
+    service lri status >/dev/null 2>&1
+    a=$?
+    if [ $a != 0 ]; then
+        service lri start
+    else
+        service lri restart   
+    fi
+}
+
+stop_lri() {
+    service lri status >/dev/null 2>&1
+    a=$?
+    if [ $a == 0 ]; then
+        service lri stop
+    fi
 }
 
 restart() {
