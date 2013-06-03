@@ -1,1 +1,2 @@
-START_LRI=yes
+START_LRI=no
+OPENSTACK=yes

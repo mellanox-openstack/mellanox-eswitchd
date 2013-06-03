@@ -14,6 +14,7 @@ exec="/usr/bin/eswitchd"
 config="/etc/$proj/eswitchd.conf"
 pidfile="/var/run/$proj/$prog.pid"
 logfile="/var/log/eswitchd/eswitchd.log"
+plugin_config="/etc/quantum/plugins/mlnx/mlnx_conf.ini"
 
 [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
@@ -23,7 +24,12 @@ start() {
     [ -x $exec ] || exit 5
     [ -f $config ] || exit 6
     echo -n $"Starting $prog: "
-    daemon --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf &>/dev/null & echo \$! > $pidfile"
+   
+    if [ "$OPENSTACK" == "yes" ];then
+        daemon --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf --config-file $plugin_config &>/dev/null & echo \$! > $pidfile"
+    else
+        daemon --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf &>/dev/null & echo \$! > $pidfile"
+    fi
     retval=$?
     echo
     [ $retval -eq 0 ] && touch $lockfile
@@ -31,6 +37,7 @@ start() {
         start_lri
     fi
     return $retval
+
 }
 
 stop() {

@@ -33,4 +33,9 @@ mlx_daemon_opts = [
                                help=('Daemon will do sync after max_polling_count * default_timeout'))
 
 ]
+eswitch_opts = [
+    cfg.ListOpt('physical_interface_mappings',
+                help=("List of <physical_network>:<physical_interface>"))
+]
 cfg.CONF.register_opts(mlx_daemon_opts, "DAEMON")
+cfg.CONF.register_opts(eswitch_opts, "ESWITCH")

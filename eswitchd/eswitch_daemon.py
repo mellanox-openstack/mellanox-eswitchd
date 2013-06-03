@@ -41,7 +41,12 @@ class MlxEswitchDaemon(object):
 
     def _parse_physical_mapping(self):
         fabrics = []
-        for entry in cfg.CONF.DAEMON.fabrics:
+        if cfg.CONF.ESWITCH.physical_interface_mappings:
+            fabrics_config = cfg.CONF.ESWITCH.physical_interface_mappings
+        else:
+            fabrics_config = cfg.CONF.DAEMON.fabrics
+
+        for entry in fabrics_config:
             if ':' in entry:
                 try:
                     fabric,pf = entry.split(':')
