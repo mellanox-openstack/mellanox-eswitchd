@@ -24,6 +24,7 @@ from db import eswitch_db
 from resource_mngr import ResourceManager 
 from utils import pci_utils
 from utils.command_utils import execute
+import sys
 
 DEFAULT_MAC_ADDRESS = '00:00:00:00:00:01'
 LOG = logging.getLogger('eswitchd')
@@ -45,8 +46,14 @@ class eSwitchHandler(object):
     
     def add_fabrics(self,fabrics):
         for fabric, pf in fabrics:
-            self.eswitches[fabric] = eswitch_db.eSwitchDB()
-            self._add_fabric(fabric,pf)
+            if pf == 'auto':
+                pf = self.pci_utils.get_pf()
+            if pf:
+                self.eswitches[fabric] = eswitch_db.eSwitchDB()
+                self._add_fabric(fabric,pf)
+            else:
+                LOG.debug("Problem with PF=auto.Terminating!")
+                sys.exit(1)
         self.sync_devices()  
           
     def sync_devices(self):
@@ -62,6 +69,7 @@ class eSwitchHandler(object):
 
     def _add_fabric(self,fabric,pf):
         self.rm.add_fabric(fabric,pf)
+        self._config_port_up(pf)
         vfs = self.rm.get_free_vfs(fabric)
         eths = self.rm.get_free_eths(fabric)
         for vf in vfs:
@@ -289,6 +297,6 @@ class eSwitchHandler(object):
     def _config_port_up(self,dev):
         cmd = ['ip', 'link', 'set', dev, 'up']       
         execute(cmd, root_helper='sudo')        
-#        
+ 
 
 

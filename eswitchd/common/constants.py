@@ -15,6 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+VENDOR='0x15b3'
+SUBS_DEV='0x0050'
+LINK_UP='1'
+
+
 VIF_TYPE_DIRECT = 'direct'
 VIF_TYPE_HOSTDEV = 'hostdev'
 
