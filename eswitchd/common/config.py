@@ -37,5 +37,12 @@ eswitch_opts = [
     cfg.ListOpt('physical_interface_mappings',
                 help=("List of <physical_network>:<physical_interface>"))
 ]
+of_agent_opts = [
+    cfg.BoolOpt('start_of_agent', default="no"),
+    cfg.ListOpt('of_agent_mappings',
+                #default=['mlx1:127.0.0.1:0002c9397000'],
+                help=("List of <fabric>:<controller_ip>:<dpid>"))
+]
 cfg.CONF.register_opts(mlx_daemon_opts, "DAEMON")
 cfg.CONF.register_opts(eswitch_opts, "ESWITCH")
+cfg.CONF.register_opts(of_agent_opts, "OF")

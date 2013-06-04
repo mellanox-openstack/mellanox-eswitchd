@@ -33,9 +33,6 @@ start() {
     retval=$?
     echo
     [ $retval -eq 0 ] && touch $lockfile
-    if [ $retval -eq 0 ] && [ "$START_LRI" = 'yes' ];then
-        start_lri
-    fi
     return $retval
 
 }
@@ -46,30 +43,13 @@ stop() {
     retval=$?
     echo
     [ $retval -eq 0 ] && rm -f $lockfile
-    if [ $START_LRI == 'yes' ];then
-        stop_lri
-    fi
+    stop_lri
     return $retval
 }
 
-start_lri() {
-    service lri status >/dev/null 2>&1
-    a=$?
-    if [ $a != 0 ]; then
-        service lri start
-    else
-        service lri restart   
-    fi
-}
-
 stop_lri() {
-    service lri status >/dev/null 2>&1
-    a=$?
-    if [ $a == 0 ]; then
-        service lri stop
-    fi
+    pkill -9 -f '/usr/local/bin/lri*'
 }
-
 restart() {
     stop
     start

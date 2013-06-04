@@ -49,4 +49,11 @@ def execute(cmd, root_helper=None, process_input=None, addl_env=None,
         raise RuntimeError(m)
     return return_stderr and (_stdout, _stderr) or _stdout
 
-
+def execute_bg(cmd, root_helper=None, log=None):
+    if root_helper:
+        cmd = shlex.split(root_helper) + cmd
+    cmd = map(str, cmd)
+    LOG.debug("Running command: " + " ".join(cmd))
+    env = os.environ.copy()
+    obj = subprocess.Popen(cmd, stdout=log, stderr=log)
+    

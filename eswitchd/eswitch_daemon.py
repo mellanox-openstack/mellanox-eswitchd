@@ -20,7 +20,6 @@ import json
 import sys
 import zmq
 from oslo.config import cfg
-#from nova.openstack.common import log as logging
 import logging
 from common import config
 import msg_handler as message
@@ -35,6 +34,7 @@ class MlxEswitchDaemon(object):
         fabrics = self._parse_physical_mapping()
         self.eswitch_handler = eSwitchHandler(fabrics)
         self.dispatcher = message.MessageDispatch(self.eswitch_handler)
+        print cfg.CONF.OF.start_of_agent
        
     def start(self):  
         self._init_connections()

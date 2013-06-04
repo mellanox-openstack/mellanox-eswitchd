@@ -17,14 +17,17 @@
 
 #from nova.openstack.common import log as logging
 import logging
+import sys
 from acl_handler import EthtoolAclHandler
 from common.exceptions import MlxException
 from common import constants
+from common import config
+from oslo.config import cfg
 from db import eswitch_db
+from of_handler import OfHandler
 from resource_mngr import ResourceManager 
 from utils import pci_utils
 from utils.command_utils import execute
-import sys
 
 DEFAULT_MAC_ADDRESS = '00:00:00:00:00:01'
 LOG = logging.getLogger('eswitchd')
@@ -40,7 +43,9 @@ class eSwitchHandler(object):
         self.devices = {
                         constants.VIF_TYPE_DIRECT: set(),
                         constants.VIF_TYPE_HOSTDEV:set()
-                        }
+        }
+        if cfg.CONF.OF.start_of_agent:
+            self.of_handler = OfHandler()
         if fabrics:
             self.add_fabrics(fabrics)
     
@@ -55,6 +60,8 @@ class eSwitchHandler(object):
                 LOG.debug("Problem with PF=auto.Terminating!")
                 sys.exit(1)
         self.sync_devices()  
+        if self.of_handler:
+            self.of_handler.add_fabrics(fabrics)
           
     def sync_devices(self):
         devices = self.rm.scan_attached_devices()
