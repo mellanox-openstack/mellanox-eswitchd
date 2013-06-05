@@ -49,18 +49,18 @@ class eSwitchHandler(object):
         if fabrics:
             self.add_fabrics(fabrics)
     
-    def add_fabrics(self,fabrics):
-        for fabric, pf in fabrics:
+    def add_fabrics(self, fabrics):
+        for fabric, pf, fabric_type in fabrics:
             if pf == 'auto':
-                pf = self.pci_utils.get_pf()
+                pf = self.pci_utils.get_pf(fabric_type)
             if pf:
                 self.eswitches[fabric] = eswitch_db.eSwitchDB()
-                self._add_fabric(fabric,pf)
+                self._add_fabric(fabric, pf, fabric_type)
             else:
                 LOG.debug("Problem with PF=auto.Terminating!")
                 sys.exit(1)
         self.sync_devices()  
-        if self.of_handler:
+        if hasattr(self, 'of_handler'):
             self.of_handler.add_fabrics(fabrics)
           
     def sync_devices(self):
@@ -74,8 +74,8 @@ class eSwitchHandler(object):
             self._treat_removed_devices(removed_devs[type],type)
             self.devices[type] = set(devices[type])
 
-    def _add_fabric(self,fabric,pf):
-        self.rm.add_fabric(fabric,pf)
+    def _add_fabric(self, fabric, pf, fabric_type):
+        self.rm.add_fabric(fabric, pf, fabric_type)
         self._config_port_up(pf)
         vfs = self.rm.get_free_vfs(fabric)
         eths = self.rm.get_free_eths(fabric)
@@ -139,7 +139,7 @@ class eSwitchHandler(object):
                     if eswitch.attach_vnic(dev, device_id, vnic_mac):
                         pf, vf_index = self._get_device_pf_vf(fabric, vnic_type, dev)
                         if vnic_type == constants.VIF_TYPE_HOSTDEV:
-                            self._config_vf_mac_address(pf, vf_index, vnic_mac)
+                            self._config_vf_mac_address(fabric, vf_index, vnic_mac)
                         acl_rules = eswitch.get_acls_for_vnic(vnic_mac)
                         self.acl_handler.set_acl_rules(pf, acl_rules)
                     else:
@@ -282,9 +282,20 @@ class eSwitchHandler(object):
         vf_index = self.pci_utils.get_vf_index(dev, vnic_type)
         return pf, vf_index
      
-    def _config_vf_mac_address(self,pf,vf_index,vnic_mac):
-        cmd = ['ip', 'link','set',pf, 'vf', vf_index ,'mac',vnic_mac]
-        execute(cmd, root_helper='sudo')
+    def _config_vf_mac_address(self, fabric, vf_index, vnic_mac):
+        vguid = '14058123456789'
+        fabric_details = self.rm.get_fabric_details(fabric)
+        pf = fabric_details['pf'] 
+        fabric_type = fabric_details['fabric_type']
+        if fabric_type == 'ib':
+            hca_port = fabric_details['hca_port'] 
+            path = "/sys/class/infiniband/mlx4_0/iov/ports/%s/admin_guids/%s" % (hca_port, int(vf_index)+1)
+            fd = open(path, 'w')
+            fd.write(vguid)
+            fd.close()
+        else:
+            cmd = ['ip', 'link','set',pf, 'vf', vf_index ,'mac',vnic_mac]
+            execute(cmd, root_helper='sudo')
             
     def _config_vlan_priority_direct(self, pf, vf_index, dev, vlan,priority='0'):
         vf = self.pci_utils.get_eth_vf(dev)
@@ -306,4 +317,7 @@ class eSwitchHandler(object):
         execute(cmd, root_helper='sudo')        
  
 
-
+if __name__ == '__main__':
+   fabrics = [('default', 'ib0', 'ib')]  
+   eswitch = eSwitchHandler(fabrics)
+   eswitch._config_vf_mac_address('default', '0', '00000')

@@ -29,6 +29,8 @@ class pciUtils:
     ETHS_PATH = "/sys/class/net/eth*"
     ETH_PF_NETDEV = "/sys/class/net/DEV/device/physfn/net"
     ETH_PATH = "/sys/class/net/ETH"
+    IBS_PATH = "/sys/class/net/ib*"
+    ETH_PF_NETDEV = "/sys/class/net/DEV/device/physfn/net"
     ETH_DEV =  ETH_PATH + "/device"
     ETH_MAC =  ETH_PATH + "/address"
     ETH_PORT = ETH_PATH + "/dev_id"
@@ -54,12 +56,14 @@ class pciUtils:
         except IOError:
             return 
 
-
-    def get_pf(self):
+    def get_pf(self, fabric_type):
         """
         Scan the system to find a PF with state UP
         """
-        eths = glob.glob(self.ETHS_PATH)
+        if fabric_type == 'ib':
+            eths = glob.glob(self.IBS_PATH)
+        else:
+            eths = glob.glob(self.ETHS_PATH)
         pfs = []
         for eth in eths:
             eth = eth.split('/')[-1]

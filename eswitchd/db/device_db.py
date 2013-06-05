@@ -27,7 +27,7 @@ class DeviceDB():
     def get_pf(self,fabric):
         return self.device_db[fabric]['pf']
     
-    def add_fabric(self,fabric,pf,pci_id,hca_port):  
+    def add_fabric(self, fabric, pf, pci_id, hca_port, fabric_type):  
         list_keys = ['vfs','eths','free_vfs','reserved_vfs','free_eths','reserved_eths']  
         details = {}
         for key in list_keys:
@@ -35,8 +35,12 @@ class DeviceDB():
         details['pf'] = pf 
         details['pci_id'] = pci_id
         details['hca_port'] = hca_port          
+        details['fabric_type'] = fabric_type
         self.device_db[fabric] = details
-        
+    
+    def get_fabric_details(self, fabric):
+        return self.device_db[fabric]
+   
     def set_fabric_devices(self,fabric,eths,vfs):
         self.device_db[fabric]['vfs'] = vfs
         self.device_db[fabric]['free_vfs'] = vfs[:]

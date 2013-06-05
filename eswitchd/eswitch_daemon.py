@@ -34,7 +34,6 @@ class MlxEswitchDaemon(object):
         fabrics = self._parse_physical_mapping()
         self.eswitch_handler = eSwitchHandler(fabrics)
         self.dispatcher = message.MessageDispatch(self.eswitch_handler)
-        print cfg.CONF.OF.start_of_agent
        
     def start(self):  
         self._init_connections()
@@ -49,8 +48,8 @@ class MlxEswitchDaemon(object):
         for entry in fabrics_config:
             if ':' in entry:
                 try:
-                    fabric,pf = entry.split(':')
-                    fabrics.append((fabric,pf))
+                    fabric, pf, fabric_type = entry.split(':')
+                    fabrics.append((fabric, pf, fabric_type))
                 except ValueError as ex:
                     LOG.error(_("Invalid fabric: "
                                 "'%(entry)s' - ",

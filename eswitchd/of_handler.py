@@ -51,19 +51,19 @@ class OfHandler(object):
  
         self.daemon_ip = DAEMON_IP
 
-    def _get_dpid(self, pf):
+    def _get_dpid(self, pf, fabric_type):
        if pf == 'auto':
-           pf = self.putils.get_pf()
+           pf = self.putils.get_pf(fabric_type)
        mac = self.putils.get_eth_mac(pf)
        return mac.replace(":","")
 
     def _run_of_agents(self, fabrics):
-        for (fabric, pf) in fabrics:
+        for (fabric, pf, fabric_type) in fabrics:
             try:
                 controller = self.of_fabrics[fabric]['controller']
                 dpid = self.of_fabrics[fabric]['dpid']
                 if dpid == 'auto':
-                    dpid = self._get_dpid(pf)
+                    dpid = self._get_dpid(pf, fabric_type)
                 cmd = [OF_CMD, '-v', '-c', controller, '-p', self.daemon_ip, '-f', fabric, '-m', dpid]
                 of_log_file = OF_LOG.replace('dpid', dpid)
                 log = open(of_log_file, 'a')
