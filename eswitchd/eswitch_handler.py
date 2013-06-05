@@ -31,6 +31,7 @@ from utils.command_utils import execute
 
 DEFAULT_MAC_ADDRESS = '00:00:00:00:00:01'
 LOG = logging.getLogger('eswitchd')
+INVALID_PKEY = 'none'
 ACL_REF = 0
 #LOG = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ class eSwitchHandler(object):
                     if eswitch.attach_vnic(dev, device_id, vnic_mac):
                         pf, vf_index = self._get_device_pf_vf(fabric, vnic_type, dev)
                         if vnic_type == constants.VIF_TYPE_HOSTDEV:
-                            self._config_vf_mac_address(fabric, vf_index, vnic_mac)
+                            self._config_vf_mac_address(fabric, dev, vf_index, vnic_mac)
                         acl_rules = eswitch.get_acls_for_vnic(vnic_mac)
                         self.acl_handler.set_acl_rules(pf, acl_rules)
                     else:
@@ -176,7 +177,7 @@ class eSwitchHandler(object):
                 if dev_type == constants.VIF_TYPE_HOSTDEV:
                     pf, vf_index = self._get_device_pf_vf(fabric, dev_type, dev)
                     #unset MAC to default value
-                    self._config_vf_mac_address(pf, vf_index, DEFAULT_MAC_ADDRESS)
+                    self._config_vf_mac_address(fabric, dev, vf_index, DEFAULT_MAC_ADDRESS)
                 self.rm.deallocate_device(fabric,dev_type,dev)
         else:
             LOG.error("No eSwitch found for Fabric %s",fabric)
@@ -282,7 +283,13 @@ class eSwitchHandler(object):
         vf_index = self.pci_utils.get_vf_index(dev, vnic_type)
         return pf, vf_index
      
-    def _config_vf_mac_address(self, fabric, vf_index, vnic_mac):
+    def _config_vf_pkey(self, pkey, pkey_idx, pf_mlx_dev, vf_pci_id, hca_port):
+        path = "/sys/class/infiniband/%s/iov/%s/ports/%s/pkey_idx/%s" % (pf_mlx_dev, vf_pci_id, hca_port, pkey_idx)
+        fd = open(path, 'w')
+        fd.write(pkey)
+        fd.close()
+
+    def _config_vf_mac_address(self, fabric, dev, vf_index, vnic_mac):
         vguid = '14058123456788'
         fabric_details = self.rm.get_fabric_details(fabric)
         pf = fabric_details['pf'] 
@@ -290,6 +297,8 @@ class eSwitchHandler(object):
         if fabric_type == 'ib':
             hca_port = fabric_details['hca_port'] 
             pf_mlx_dev = fabric_details['pf_mlx_dev'] 
+
+            self._config_vf_pkey(INVALID_PKEY,'0', pf_mlx_dev, dev, hca_port)
             path = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s" % (pf_mlx_dev, hca_port, int(vf_index)+1)
             fd = open(path, 'w')
             fd.write(vguid)
