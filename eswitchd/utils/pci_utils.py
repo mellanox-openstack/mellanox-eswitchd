@@ -35,6 +35,7 @@ class pciUtils:
     ETH_MAC =  ETH_PATH + "/address"
     ETH_PORT = ETH_PATH + "/dev_id"
     LINK_PATH = ETH_PATH + "/carrier"
+    PF_MLX_DEV_PATH = "/sys/class/infiniband/*"
     constants.SUBS_DEV_PATH = ETH_DEV + '/subsystem_device'
     constants.VENDOR_PATH = ETH_DEV + '/vendor'
 
@@ -124,12 +125,22 @@ class pciUtils:
         except:
             return None
 
-    def get_pf_pci(self, pf):
+    def get_pf_pci(self, pf,type=None):
         vf = self.get_eth_vf(pf)
         if vf:
-            return vf[:-2]
+            if type == 'normal':
+               return vf
+            else:
+               return vf[:-2]
         else:
             return None
+
+    def get_pf_mlx_dev(self, pci_id):
+        paths = glob.glob(pciUtils.PF_MLX_DEV_PATH)
+        for path in paths:
+            id = os.readlink(path).split('/')[5]
+            if pci_id == id:
+                return path.split('/')[-1]
 
     def get_vf_index(self, dev, dev_type):
         """

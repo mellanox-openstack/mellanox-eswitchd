@@ -283,13 +283,14 @@ class eSwitchHandler(object):
         return pf, vf_index
      
     def _config_vf_mac_address(self, fabric, vf_index, vnic_mac):
-        vguid = '14058123456789'
+        vguid = '14058123456788'
         fabric_details = self.rm.get_fabric_details(fabric)
         pf = fabric_details['pf'] 
         fabric_type = fabric_details['fabric_type']
         if fabric_type == 'ib':
             hca_port = fabric_details['hca_port'] 
-            path = "/sys/class/infiniband/mlx4_0/iov/ports/%s/admin_guids/%s" % (hca_port, int(vf_index)+1)
+            pf_mlx_dev = fabric_details['pf_mlx_dev'] 
+            path = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s" % (pf_mlx_dev, hca_port, int(vf_index)+1)
             fd = open(path, 'w')
             fd.write(vguid)
             fd.close()
