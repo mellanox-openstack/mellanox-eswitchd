@@ -16,6 +16,7 @@
 # limitations under the License.
 
 #from nova.openstack.common import log as logging
+import glob
 import logging
 import sys
 from acl_handler import EthtoolAclHandler
@@ -32,6 +33,8 @@ from utils.command_utils import execute
 DEFAULT_MAC_ADDRESS = '00:00:00:00:00:01'
 LOG = logging.getLogger('eswitchd')
 INVALID_PKEY = 'none'
+DEFAULT_PKEY_IDX = '0'
+BASE_PKEY = '0x8000'
 ACL_REF = 0
 #LOG = logging.getLogger(__name__)
 
@@ -218,7 +221,7 @@ class eSwitchHandler(object):
                             if vnic_type == constants.VIF_TYPE_DIRECT:
                                 self._config_vlan_priority_direct(pf, vf_index, dev, vlan, priority)
                             else:
-                                self._config_vlan_priority_hostdev(pf, vf_index, dev, vlan, priority)
+                                self._config_vlan_priority_hostdev(fabric, pf,  vf_index, dev, vlan, priority)
                             return True
                         except RuntimeError:
                             LOG.error('Set VLAN operation failed')    
@@ -283,10 +286,10 @@ class eSwitchHandler(object):
         vf_index = self.pci_utils.get_vf_index(dev, vnic_type)
         return pf, vf_index
      
-    def _config_vf_pkey(self, pkey, pkey_idx, pf_mlx_dev, vf_pci_id, hca_port):
+    def _config_vf_pkey(self, ppkey_idx, pkey_idx, pf_mlx_dev, vf_pci_id, hca_port):
         path = "/sys/class/infiniband/%s/iov/%s/ports/%s/pkey_idx/%s" % (pf_mlx_dev, vf_pci_id, hca_port, pkey_idx)
         fd = open(path, 'w')
-        fd.write(pkey)
+        fd.write(ppkey_idx)
         fd.close()
 
     def _config_vf_mac_address(self, fabric, dev, vf_index, vnic_mac):
@@ -298,7 +301,7 @@ class eSwitchHandler(object):
             hca_port = fabric_details['hca_port'] 
             pf_mlx_dev = fabric_details['pf_mlx_dev'] 
 
-            self._config_vf_pkey(INVALID_PKEY,'0', pf_mlx_dev, dev, hca_port)
+            self._config_vf_pkey(INVALID_PKEY, DEFAULT_PKEY_IDX, pf_mlx_dev, dev, hca_port)
             path = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s" % (pf_mlx_dev, hca_port, int(vf_index)+1)
             fd = open(path, 'w')
             fd.write(vguid)
@@ -314,9 +317,32 @@ class eSwitchHandler(object):
         execute(cmd, root_helper='sudo')
         self._config_port_up(dev)
         
-    def _config_vlan_priority_hostdev(self, pf, vf_index, dev, vlan,priority='0'):
-        cmd = ['ip', 'link','set',pf , 'vf', vf_index, 'vlan', vlan, 'qos', priority]
-        execute(cmd, root_helper='sudo')
+    def _config_vlan_priority_hostdev(self, fabric, pf, vf_index, dev, vlan, priority='0'):
+        fabric_details = self.rm.get_fabric_details(fabric)
+        fabric_type = fabric_details['fabric_type']
+        if fabric_type == 'ib':
+            self._config_vlan_ib(vlan, fabric_details, dev, vf_index)
+        else: 
+            cmd = ['ip', 'link','set',pf , 'vf', vf_index, 'vlan', vlan, 'qos', priority]
+            execute(cmd, root_helper='sudo')
+    
+    def _config_vlan_ib(self, vlan, fabric_details, dev, vf_index):
+        hca_port = fabric_details['hca_port'] 
+        pf_mlx_dev = fabric_details['pf_mlx_dev'] 
+        ppkey_idx = self._get_pkey_idx(vlan, pf_mlx_dev, hca_port)
+        if ppkey_idx:
+            self._config_vf_pkey(ppkey_idx, DEFAULT_PKEY_IDX, pf_mlx_dev, dev, hca_port)
+        
+    def _get_pkey_idx(self, vlan, pf_mlx_dev, hca_port):
+        PKEYS_PATH="/sys/class/infiniband/%s/ports/%s/pkeys/*"
+        paths = PKEYS_PATH % (pf_mlx_dev , hca_port)
+        for path in glob.glob(paths):
+            fd = open(path)
+            pkey = fd.readline()
+            fd.close()
+            if int(pkey, 0) - int(BASE_PKEY, 0) == vlan:
+                return path.split('/')[-1]
+        return None
         
     def _config_port_down(self,dev):
         cmd = ['ip', 'link', 'set', dev, 'down']       
@@ -330,4 +356,9 @@ class eSwitchHandler(object):
 if __name__ == '__main__':
    fabrics = [('default', 'ib0', 'ib')]  
    eswitch = eSwitchHandler(fabrics)
-   eswitch._config_vf_mac_address('default', '0', '00000')
+#   eswitch._config_vf_mac_address('default', '0', '00000')
+   vlan=2
+   vf_index=0
+   dev = '0000:04:00.1'
+   fabric_details = {'hca_port':'1','pf_mlx_dev':'mlx4_0'}
+   eswitch._config_vlan_ib(vlan, fabric_details, dev, vf_index)
