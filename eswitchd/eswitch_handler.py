@@ -34,8 +34,10 @@ DEFAULT_MAC_ADDRESS = '00:00:00:00:00:01'
 LOG = logging.getLogger('eswitchd')
 INVALID_PKEY = 'none'
 DEFAULT_PKEY_IDX = '0'
+PARTIAL_PKEY_IDX = '1'
 BASE_PKEY = '0x8000'
 PADDING = '0000' 
+PARTIAL_VLAN = -1
 ACL_REF = 0
 #LOG = logging.getLogger(__name__)
 
@@ -293,7 +295,6 @@ class eSwitchHandler(object):
         fd.write(ppkey_idx)
         fd.close()
 
-
     def _get_guid_from_mac(self, mac):
         mac = mac.replace(':','')
         prefix = mac[:6]
@@ -315,6 +316,12 @@ class eSwitchHandler(object):
             fd = open(path, 'w')
             fd.write(vguid)
             fd.close()
+            ppkey_idx = self._get_pkey_idx(PARTIAL_VLAN, pf_mlx_dev, hca_port)
+            if ppkey_idx >= 0:
+                self._config_vf_pkey(ppkey_idx, DEFAULT_PKEY_IDX, pf_mlx_dev, dev, hca_port)
+            else:
+                LOG.error("Can't find partial management pkey for %s:%s" % (pf_mlx_dev,vf_index))
+
         else:
             cmd = ['ip', 'link','set',pf, 'vf', vf_index ,'mac',vnic_mac]
             execute(cmd, root_helper='sudo')
@@ -349,7 +356,7 @@ class eSwitchHandler(object):
             fd = open(path)
             pkey = fd.readline()
             fd.close()
-            if int(pkey, 0) - int(BASE_PKEY, 0) == vlan:
+            if (int(pkey, 0) - int(BASE_PKEY, 0)) == vlan:
                 return path.split('/')[-1]
         return None
         
@@ -363,11 +370,11 @@ class eSwitchHandler(object):
  
 
 if __name__ == '__main__':
-   fabrics = [('default', 'ib0', 'ib')]  
+   fabrics = [('mlx1', 'ib0', 'ib')]  
    eswitch = eSwitchHandler(fabrics)
-#   eswitch._config_vf_mac_address('default', '0', '00000')
-   vlan=2
-   vf_index=0
-   dev = '0000:04:00.1'
-   fabric_details = {'hca_port':'1','pf_mlx_dev':'mlx4_0'}
-   eswitch._config_vlan_ib(vlan, fabric_details, dev, vf_index)
+   eswitch._config_vf_mac_address('mlx1', '0000:04:00.1','0', '00:25:00:00:62:22')
+#   vlan=2
+#   vf_index=0
+#   dev = '0000:04:00.1'
+#   fabric_details = {'hca_port':'1','pf_mlx_dev':'mlx4_0'}
+#   eswitch._config_vlan_ib(vlan, fabric_details, dev, vf_index)
