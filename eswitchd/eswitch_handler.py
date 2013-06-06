@@ -35,6 +35,7 @@ LOG = logging.getLogger('eswitchd')
 INVALID_PKEY = 'none'
 DEFAULT_PKEY_IDX = '0'
 BASE_PKEY = '0x8000'
+PADDING = '0000' 
 ACL_REF = 0
 #LOG = logging.getLogger(__name__)
 
@@ -292,8 +293,16 @@ class eSwitchHandler(object):
         fd.write(ppkey_idx)
         fd.close()
 
+
+    def _get_guid_from_mac(self, mac):
+        mac = mac.replace(':','')
+        prefix = mac[:6]
+        suffix = mac[6:]
+        guid = prefix + PADDING + suffix
+        return guid
+ 
     def _config_vf_mac_address(self, fabric, dev, vf_index, vnic_mac):
-        vguid = '14058123456788'
+        vguid = self._get_guid_from_mac(vnic_mac)
         fabric_details = self.rm.get_fabric_details(fabric)
         pf = fabric_details['pf'] 
         fabric_type = fabric_details['fabric_type']
