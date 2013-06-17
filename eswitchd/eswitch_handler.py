@@ -318,7 +318,7 @@ class eSwitchHandler(object):
             fd.close()
             ppkey_idx = self._get_pkey_idx(PARTIAL_VLAN, pf_mlx_dev, hca_port)
             if ppkey_idx >= 0:
-                self._config_vf_pkey(ppkey_idx, DEFAULT_PKEY_IDX, pf_mlx_dev, dev, hca_port)
+                self._config_vf_pkey(ppkey_idx, PARTIAL_PKEY_IDX, pf_mlx_dev, dev, hca_port)
             else:
                 LOG.error("Can't find partial management pkey for %s:%s" % (pf_mlx_dev,vf_index))
 
