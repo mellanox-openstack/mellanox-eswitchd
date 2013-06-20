@@ -39,7 +39,6 @@ BASE_PKEY = '0x8000'
 PADDING = '0000' 
 PARTIAL_VLAN = -1
 ACL_REF = 0
-#LOG = logging.getLogger(__name__)
 
 class eSwitchHandler(object):
     def __init__(self,fabrics=None):
@@ -157,8 +156,6 @@ class eSwitchHandler(object):
                     LOG.error('Create port operation failed ')
                     self.rm.deallocate_device(fabric,vnic_type,dev)
                     dev = None         
-            LOG.debug("PORT TABLE after create port:%s"% eswitch.get_port_table())
-            LOG.debug("PORT POLICY after create port:%s"% eswitch.get_port_policy())                       
         else:
             LOG.error("No eSwitch found for Fabric %s",fabric)
 
@@ -169,11 +166,8 @@ class eSwitchHandler(object):
         eswitch = self._get_vswitch_for_fabric(fabric)
         if eswitch:
             dev = eswitch.get_dev_for_vnic(vnic_mac)
-            LOG.debug("DEV=%s",dev)
             if dev:
                 eswitch.plug_nic(dev)
-            LOG.debug("PORT TABLE after plug vnic:%s" % eswitch.get_port_table())
-            LOG.debug("PORT POLICY after plug vnic:%s" % eswitch.get_port_policy())
         else:
             LOG.error("No eSwitch found for Fabric %s",fabric)
 
@@ -199,8 +193,6 @@ class eSwitchHandler(object):
                 self.rm.deallocate_device(fabric,dev_type,dev)       
         else:
             LOG.error("No eSwitch found for Fabric %s",fabric)
-        LOG.debug("PORT TABLE: after delete port:%s" % eswitch.get_port_table())
-        LOG.debug("PORT POLICY after delete port:%s" % eswitch.get_port_policy())
         return dev  
 
     def port_release(self, fabric, vnic_mac):
@@ -218,7 +210,8 @@ class eSwitchHandler(object):
         if eswitch:
             dev = eswitch.get_dev_for_vnic(vnic_mac)
             if dev: 
-                self._config_port_down(dev)
+                vnic_type = eswitch.get_port_type(dev)
+                self._config_port_down(dev, vnic_type)
             else:
                 LOG.debug("No device for MAC %s",vnic_mac)
                 
@@ -344,7 +337,6 @@ class eSwitchHandler(object):
             execute(cmd, root_helper='sudo')
             
     def _config_vlan_priority_direct(self, pf, vf_index, dev, vlan,priority='0'):
-        #vf = self.pci_utils.get_eth_vf(dev)
         self._config_port_down(dev)
         cmd = ['ip', 'link','set',pf , 'vf', vf_index, 'vlan', vlan, 'qos', priority]
         execute(cmd, root_helper='sudo')
@@ -377,9 +369,10 @@ class eSwitchHandler(object):
                 return path.split('/')[-1]
         return None
         
-    def _config_port_down(self,dev):
-        cmd = ['ip', 'link', 'set', dev, 'down']       
-        execute(cmd, root_helper='sudo')
+    def _config_port_down(self, dev, vnic_type=constants.VIF_TYPE_DIRECT):
+        if vnic_type == constants.VIF_TYPE_DIRECT:
+            cmd = ['ip', 'link', 'set', dev, 'down']       
+            execute(cmd, root_helper='sudo')
         
     def _config_port_up(self,dev):
         cmd = ['ip', 'link', 'set', dev, 'up']       
@@ -389,14 +382,3 @@ class eSwitchHandler(object):
         self._config_port_down(dev)
         cmd = ['ip', 'link', 'set', dev, 'name', device_name]       
         execute(cmd, root_helper='sudo')        
- 
-
-if __name__ == '__main__':
-   fabrics = [('mlx1', 'ib0', 'ib')]  
-   eswitch = eSwitchHandler(fabrics)
-   eswitch._config_vf_mac_address('mlx1', '0000:04:00.1','0', '00:25:00:00:62:22')
-#   vlan=2
-#   vf_index=0
-#   dev = '0000:04:00.1'
-#   fabric_details = {'hca_port':'1','pf_mlx_dev':'mlx4_0'}
-#   eswitch._config_vlan_ib(vlan, fabric_details, dev, vf_index)
