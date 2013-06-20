@@ -31,10 +31,12 @@ class eSwitchDB():
         def create_port(self, port_name, port_type):
             self.port_table.update({port_name: {'type': port_type,
                                                 'vnic': None,
-                                                'state': None,}})
+                                                'state': None,
+                                                'alias': None}})
 
         def plug_nic(self, port_name):
             self.port_table[port_name]['state'] = constants.VPORT_STATE_ATTACHED
+            LOG.debug("port table:",self.port_table)
 
         def get_ports(self):
             return self.port_table
@@ -57,6 +59,9 @@ class eSwitchDB():
                  
         def get_port_policy(self):
             return self.port_policy
+        
+        def get_port_table(self):
+            return self.port_table
         
         def get_vlan(self, vnic_mac):
             if self.vnic_exists(vnic_mac):
@@ -82,6 +87,13 @@ class eSwitchDB():
                 dev_type = self.port_table[dev]['type']
             return dev_type
         
+        def get_dev_alias_for_vnic(self, vnic_mac):
+            alias = None
+            dev = self.get_dev_for_vnic(vnic_mac)
+            if dev:
+                alias = self.port_table[dev].get('alias')
+            return alias
+            
         def get_dev_type_for_vnic(self, vnic_mac):
             dev = None
 
@@ -100,6 +112,9 @@ class eSwitchDB():
                     dev = self.port_policy[vnic_mac]['dev']
             return dev
         
+
+            
+        
         def get_vnic_state(self, vnic_mac):
             dev_state = None
             dev = self.get_dev_for_vnic(vnic_mac)
@@ -112,9 +127,11 @@ class eSwitchDB():
                 return True
             else:
                 return False
+
             
-        def attach_vnic(self,port_name, device_id, vnic_mac):
+        def attach_vnic(self,port_name, device_id, vnic_mac,dev_name = None):
             self.port_table[port_name]['vnic'] = vnic_mac
+            self.port_table[port_name]['alias'] = dev_name
             self.port_table[port_name]['state'] = constants.VPORT_STATE_PENDING
             dev = self.get_dev_for_vnic(vnic_mac)
             if not dev:
@@ -141,6 +158,7 @@ class eSwitchDB():
                 for attr in ['vnic_mac','device_id']:
                     self.port_policy[vnic_mac][attr] = None
                 self.port_table[dev]['vnic'] = None
+                self.port_table[dev]['alias'] = None
                 self.port_table[dev]['state'] = constants.VPORT_STATE_UNPLUGGED
             return dev
         

@@ -72,8 +72,8 @@ class DeviceDB():
             else:
                 dev = available_resources.pop()
             return dev
-        except Exception, e:
-            LOG.error("exception on device allocation on dev  %s",dev)
+        except Exception,e:
+            LOG.error("exception on device allocation on dev  %s - No available resources." % dev)
             raise e
         
     def deallocate_device(self,fabric,is_device,dev):

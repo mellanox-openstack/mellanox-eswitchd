@@ -57,7 +57,9 @@ class BasicMessageHandler(object):
         return msg 
                           
 class AttachVnic(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric','vnic_type','device_id','vnic_mac'])
+    MSG_ATTRS_MANDATORY_MAP = set(['fabric', 'vnic_type',
+                                   'device_id', 'vnic_mac', 
+                                   'dev_name'])
     
     def __init__(self,msg):
         BasicMessageHandler.__init__(self,msg)
@@ -67,14 +69,17 @@ class AttachVnic(BasicMessageHandler):
         vnic_type  = self.msg['vnic_type']
         device_id  = self.msg['device_id']
         vnic_mac   = (self.msg['vnic_mac']).lower() 
-        dev = eSwitchHandler.create_port(fabric, vnic_type, device_id, vnic_mac)
+        dev_name = self.msg['dev_name']
+        dev = eSwitchHandler.create_port(fabric, vnic_type, device_id, vnic_mac, dev_name)
         if dev:
             return self.build_response(True, response= {'dev':dev})
         else:
             return self.build_response(False, reason = 'Attach vnic failed')
         
 class PlugVnic(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric','device_id','vnic_mac'])
+    MSG_ATTRS_MANDATORY_MAP = set(['fabric','device_id',
+                                   'vnic_mac','vnic_type',
+                                   'dev_name'])
     
     def __init__(self,msg):
         BasicMessageHandler.__init__(self,msg)
@@ -83,6 +88,13 @@ class PlugVnic(BasicMessageHandler):
         fabric     = self.msg['fabric']
         device_id  = self.msg['device_id']
         vnic_mac   = (self.msg['vnic_mac']).lower() 
+        vnic_type = self.msg['vnic_type']
+        dev_name = self.msg['dev_name']
+        
+        if vnic_type == constants.VIF_TYPE_DIRECT:
+            dev = eSwitchHandler.create_port(fabric, vnic_type,
+                                             device_id, vnic_mac,
+                                             dev_name) 
         dev = eSwitchHandler.plug_nic(fabric, device_id, vnic_mac)
         if dev:
             return self.build_response(True, response= {'dev':dev})
