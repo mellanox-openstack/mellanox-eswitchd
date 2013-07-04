@@ -54,20 +54,29 @@ class eSwitchHandler(object):
             self.of_handler = OfHandler()
         if fabrics:
             self.add_fabrics(fabrics)
-    
+
     def add_fabrics(self, fabrics):
-        for fabric, pf, fabric_type in fabrics:
-            if pf == 'auto':
+        res_fabrics = []
+        for fabric, pf in fabrics:
+            fabric_type = None
+            
+            if pf in ('autoib', 'autoeth'):
+                fabric_type = pf.replace('auto', '')
                 pf = self.pci_utils.get_pf(fabric_type)
-            if pf:
+            else:
+                for type in ("ib", "eth"):
+                    if pf.startswith(type):
+                        fabric_type = type
+            if fabric_type:
                 self.eswitches[fabric] = eswitch_db.eSwitchDB()
                 self._add_fabric(fabric, pf, fabric_type)
+                res_fabrics.append((fabric, pf, fabric_type))
             else:
                 LOG.debug("Problem with PF=auto.Terminating!")
                 sys.exit(1)
         self.sync_devices()  
         if hasattr(self, 'of_handler'):
-            self.of_handler.add_fabrics(fabrics)
+            self.of_handler.add_fabrics(res_fabrics)
           
     def sync_devices(self):
         devices = self.rm.scan_attached_devices()

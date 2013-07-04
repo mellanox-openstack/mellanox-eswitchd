@@ -48,8 +48,8 @@ class MlxEswitchDaemon(object):
         for entry in fabrics_config:
             if ':' in entry:
                 try:
-                    fabric, pf, fabric_type = entry.split(':')
-                    fabrics.append((fabric, pf, fabric_type))
+                    fabric, pf = entry.split(':')
+                    fabrics.append((fabric, pf))
                 except ValueError as ex:
                     LOG.error(_("Invalid fabric: "
                                 "'%(entry)s' - ",
