@@ -2,7 +2,7 @@
 #
 # eswitchd  Mellanox Eswitch Daemon 
 #
-# chkconfig:   - 99 02
+# chkconfig:   - 97 02
 # description: Mellanox Eswitch Daemon
 ### END INIT INFO
 
