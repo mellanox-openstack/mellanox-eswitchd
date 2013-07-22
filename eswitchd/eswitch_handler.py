@@ -94,6 +94,7 @@ class eSwitchHandler(object):
         self._config_port_up(pf)
         vfs = self.rm.get_free_vfs(fabric)
         eths = self.rm.get_free_eths(fabric)
+        
         for vf in vfs:
             self.eswitches[fabric].create_port(vf, constants.VIF_TYPE_HOSTDEV)
         for eth in eths:

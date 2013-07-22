@@ -20,6 +20,7 @@ SUBS_DEV='0x0050'
 LINK_UP='1'
 
 
+VIF_TYPE_MLNX_DIRECT = 'mlnx_direct'
 VIF_TYPE_DIRECT = 'direct'
 VIF_TYPE_HOSTDEV = 'hostdev'
 

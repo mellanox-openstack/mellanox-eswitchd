@@ -45,7 +45,7 @@ class BasicMessageHandler(object):
         return ret
     
     def validate_vnic_type(self,vnic_type):
-        if vnic_type in (constants.VIF_TYPE_DIRECT, constants.VIF_TYPE_HOSTDEV):
+        if vnic_type in (constants.VIF_TYPE_DIRECT, constants.VIF_TYPE_HOSTDEV, constants.VIF_TYPE_MLNX_DIRECT):
             return True
         return False
     
@@ -90,7 +90,9 @@ class PlugVnic(BasicMessageHandler):
         vnic_mac   = (self.msg['vnic_mac']).lower() 
         vnic_type = self.msg['vnic_type']
         dev_name = self.msg['dev_name']
-        
+
+        if vnic_type == constants.VIF_TYPE_MLNX_DIRECT:
+            vnic_type = constants.VIF_TYPE_DIRECT
         if vnic_type == constants.VIF_TYPE_DIRECT:
             dev = eSwitchHandler.create_port(fabric, vnic_type,
                                              device_id, vnic_mac,
