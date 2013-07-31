@@ -21,7 +21,7 @@ from eswitchd.cli import exceptions
 import logging
 
 MLX_DAEMON = "tcp://127.0.0.1:5001"
-REQUEST_TIMEOUT = 1000
+REQUEST_TIMEOUT = 5000
 logging.basicConfig()
 LOG = logging.getLogger(__name__)
 
