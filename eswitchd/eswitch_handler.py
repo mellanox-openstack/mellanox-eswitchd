@@ -79,14 +79,14 @@ class eSwitchHandler(object):
             self.of_handler.add_fabrics(res_fabrics)
           
     def sync_devices(self):
-        devices = self.rm.scan_attached_devices()
+        devices, vm_ids = self.rm.scan_attached_devices()
         added_devs = {}
         removed_devs = {}
         for type, devs in devices.items():
             added_devs[type] = set(devs)-self.devices[type]
             removed_devs[type] = self.devices[type]-set(devs)      
-            self._treat_added_devices(added_devs[type],type)
-            self._treat_removed_devices(removed_devs[type],type)
+            self._treat_added_devices(added_devs[type], type, vm_ids)
+            self._treat_removed_devices(removed_devs[type], type)
             self.devices[type] = set(devices[type])
 
     def _add_fabric(self, fabric, pf, fabric_type):
@@ -100,12 +100,13 @@ class eSwitchHandler(object):
         for eth in eths:
             self.eswitches[fabric].create_port(eth, constants.VIF_TYPE_DIRECT)
 
-    def _treat_added_devices(self, devices,dev_type):
+    def _treat_added_devices(self, devices,dev_type, vm_ids):
         for dev, mac, fabric in devices:
             if fabric:
                 self.rm.allocate_device(fabric, dev_type=dev_type, dev=dev)
-                self.eswitches[fabric].attach_vnic(port_name=dev, device_id=None, vnic_mac=mac)
-                self.eswitches[fabric].plug_nic(port_name=dev)
+                self.eswitches[fabric].attach_vnic(port_name=dev, device_id=vm_ids[dev], vnic_mac=mac)
+                if self.eswitches[fabric].vnic_exists(mac):
+                    self.eswitches[fabric].plug_nic(port_name=dev)
             else:
                 LOG.debug("No Fabric defined for device %s", dev)
                 
@@ -176,8 +177,25 @@ class eSwitchHandler(object):
         eswitch = self._get_vswitch_for_fabric(fabric)
         if eswitch:
             dev = eswitch.get_dev_for_vnic(vnic_mac)
-            if dev:
-                eswitch.plug_nic(dev)
+            if not dev:
+                #check for port_table entry with device_id and INVALID_MAC
+                for key, data in eswitch.port_table.items():
+                    if data['device_id'] == device_id and data['vnic'] == constants.INVALID_MAC:
+                        dev = key
+                        break
+                if dev:
+                    eswitch.port_table[dev]['vnic'] = vnic_mac
+                    eswitch.port_policy.update({vnic_mac: {'vlan':None,
+                                                        'dev':dev,
+                                                        'device_id':device_id,
+                                                        'flow_ids':set([]),
+                                                        'priority': 0,
+                                                        }}) 
+                    pf, vf_index = self._get_device_pf_vf(fabric, constants.VIF_TYPE_HOSTDEV, dev)
+                    self._config_vf_mac_address(fabric, dev, vf_index, vnic_mac)      
+                else:
+                    return None           
+            eswitch.plug_nic(dev)
         else:
             LOG.error("No eSwitch found for Fabric %s",fabric)
 

@@ -43,18 +43,34 @@ class ResourceManager:
     
     def scan_attached_devices(self):
         devices = {'direct':[],'hostdev':[]}
-        conn = self.libvirtconn = libvirt.open('qemu:///system')
-        domains = conn.listDomainsID()
-        for domid in domains:
-            domain = conn.lookupByID(domid)
+        vm_ids = {}
+        conn = libvirt.open('qemu:///system')
+        domains = []
+        domains_names = conn.listDefinedDomains()
+        defined_domains = map(conn.lookupByName, domains_names)
+        domains_ids = conn.listDomainsID()
+        running_domains = map(conn.lookupByID, domains_ids)
+        for domain in defined_domains:
+            [state, maxmem, mem, ncpu, cputime] = domain.info()
+            if state in (libvirt.VIR_DOMAIN_PAUSED,
+                         libvirt.VIR_DOMAIN_SHUTDOWN,
+                         libvirt.VIR_DOMAIN_SHUTOFF):
+                domains.append(domain)
+        domains += running_domains
+        
+        for domain in domains:
             raw_xml = domain.XMLDesc(0)
             tree = etree.XML(raw_xml)
             interfaces = tree.xpath("devices/interface")
             hostdevs   = tree.xpath("devices/hostdev/source/address")
-            
-            devices['hostdev'].extend(self._get_attached_hostdevs(hostdevs))
-            devices['direct'].extend(self._get_attached_interfaces(interfaces))
-        return devices
+            vm_id = tree.find('uuid').text
+            for dev in self._get_attached_interfaces(interfaces):
+                devices['direct'].append(dev)
+                vm_ids[dev] = vm_id
+            for dev in self._get_attached_hostdevs(hostdevs):
+                devices['hostdev'].append(dev)
+                vm_ids[dev[0]] = vm_id
+        return devices, vm_ids
 
     def get_fabric_pf(self,fabric):
         return self.device_db.get_pf(fabric)

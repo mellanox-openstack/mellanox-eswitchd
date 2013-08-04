@@ -32,7 +32,8 @@ class eSwitchDB():
             self.port_table.update({port_name: {'type': port_type,
                                                 'vnic': None,
                                                 'state': None,
-                                                'alias': None}})
+                                                'alias': None,
+                                                'device_id':None}})
 
         def plug_nic(self, port_name):
             self.port_table[port_name]['state'] = constants.VPORT_STATE_ATTACHED
@@ -104,16 +105,18 @@ class eSwitchDB():
                 return self.port_table[dev]['type']
             else:
                 return None
-         
+                        
+            if vnic_mac in self.port_policy:
+                if 'dev' in self.port_policy[vnic_mac]:
+                    dev = self.port_policy[vnic_mac]['dev']
+            return dev
+        
         def get_dev_for_vnic(self, vnic_mac):
             dev = None
             if vnic_mac in self.port_policy:
                 if 'dev' in self.port_policy[vnic_mac]:
                     dev = self.port_policy[vnic_mac]['dev']
             return dev
-        
-
-            
         
         def get_vnic_state(self, vnic_mac):
             dev_state = None
@@ -133,8 +136,9 @@ class eSwitchDB():
             self.port_table[port_name]['vnic'] = vnic_mac
             self.port_table[port_name]['alias'] = dev_name
             self.port_table[port_name]['state'] = constants.VPORT_STATE_PENDING
+            self.port_table[port_name]['device_id'] = device_id
             dev = self.get_dev_for_vnic(vnic_mac)
-            if not dev:
+            if not dev and vnic_mac != constants.INVALID_MAC:
                 if vnic_mac in self.port_policy:
                     vnic_mac_entry = self.port_policy[vnic_mac]
                     vnic_mac_entry['dev'] = port_name 
@@ -160,6 +164,7 @@ class eSwitchDB():
                 self.port_table[dev]['vnic'] = None
                 self.port_table[dev]['alias'] = None
                 self.port_table[dev]['state'] = constants.VPORT_STATE_UNPLUGGED
+                self.port_table[dev]['device_id'] = None
             return dev
         
         def port_release(self, vnic_mac):
