@@ -180,6 +180,20 @@ class pciUtils:
             raise
         return macs_map                  
 
+    def get_vfs_macs_ib(self, pf, pf_mlx_dev, hca_port):
+        macs_map = {}
+        guids_path = constants.ADMIN_GUID_PATH % (pf_mlx_dev, hca_port, '[1-9]*')
+        paths = glob.glob(guids_path)
+        for path in paths:
+            vf_index = path.split('/')[-1]
+            with open(path) as f:
+                guid = f.readline().strip()
+                head = guid[:6]
+                tail = guid[-6:]
+                mac = ":".join(re.findall('..?', head + tail))
+                macs_map[str(int(vf_index)-1)] = mac 
+        return macs_map
+
     def get_device_address(self, hostdev):
         domain = hostdev.attrib['domain'][2:]
         bus = hostdev.attrib['bus'][2:]

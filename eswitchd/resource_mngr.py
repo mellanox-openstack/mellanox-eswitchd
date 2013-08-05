@@ -46,6 +46,7 @@ class ResourceManager:
         vm_ids = {}
         conn = libvirt.open('qemu:///system')
         domains = []
+        self.macs_map = self._get_vfs_macs()
         domains_names = conn.listDefinedDomains()
         defined_domains = map(conn.lookupByName, domains_names)
         domains_ids = conn.listDomainsID()
@@ -133,9 +134,16 @@ class ResourceManager:
         macs_map = {}
         fabrics = self.device_db.device_db.keys()
         for fabric in fabrics:
-            pf = self.get_fabric_pf(fabric)
+            fabric_details = self.device_db.get_fabric_details(fabric)
+            pf = fabric_details['pf']
+            fabric_type = fabric_details['fabric_type']
+            hca_port = fabric_details['hca_port']          
+            pf_mlx_dev = fabric_details['pf_mlx_dev']
             try:
-                macs_map[fabric] =  self.pci_utils.get_vfs_macs(pf)
+                if fabric_type == 'ib':
+                    macs_map[fabric] = self.pci_utils.get_vfs_macs_ib(pf, pf_mlx_dev, hca_port)
+                else:
+                    macs_map[fabric] =  self.pci_utils.get_vfs_macs(pf)
             except Exception:
                 LOG.warning("Failed to get vfs macs for fabric %s ",fabric)
                 continue
@@ -143,14 +151,13 @@ class ResourceManager:
     
     def _get_attached_hostdevs(self, hostdevs):
         devs = []
-        macs_map = self._get_vfs_macs()
         for hostdev in hostdevs:
             dev = self.pci_utils.get_device_address(hostdev)
             fabric = self.get_fabric_for_dev(dev)
             if fabric:
                 vf_index = self.pci_utils.get_vf_index(dev, 'hostdev')
                 try:
-                    mac = macs_map[fabric][str(vf_index)]
+                    mac = self.macs_map[fabric][str(vf_index)]
                     devs.append((dev,mac,fabric))
                 except KeyError:
                     LOG.warning("Failed to retrieve Hostdev MAC for dev %s",dev)
