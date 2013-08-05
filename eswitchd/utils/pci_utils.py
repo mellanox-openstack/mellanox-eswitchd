@@ -188,9 +188,12 @@ class pciUtils:
             vf_index = path.split('/')[-1]
             with open(path) as f:
                 guid = f.readline().strip()
-                head = guid[:6]
-                tail = guid[-6:]
-                mac = ":".join(re.findall('..?', head + tail))
+                if guid == constants.INVALID_GUID:
+                    mac = constants.INVALID_MAC
+                else: 
+                    head = guid[:6]
+                    tail = guid[-6:]
+                    mac = ":".join(re.findall('..?', head + tail))
                 macs_map[str(int(vf_index)-1)] = mac 
         return macs_map
 

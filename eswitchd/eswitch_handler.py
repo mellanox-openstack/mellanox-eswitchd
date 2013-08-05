@@ -183,6 +183,8 @@ class eSwitchHandler(object):
                     if data['device_id'] == device_id and data['vnic'] == constants.INVALID_MAC:
                         dev = key
                         break
+                else:
+                    LOG.error("Plug NIC: Didn't find dev for MAC:%s and device_id:%s" % (data['vnic'], device_id))
                 if dev:
                     eswitch.port_table[dev]['vnic'] = vnic_mac
                     eswitch.port_policy.update({vnic_mac: {'vlan':None,
@@ -334,6 +336,8 @@ class eSwitchHandler(object):
         fd.close()
 
     def _get_guid_from_mac(self, mac):
+        if mac == DEFAULT_MAC_ADDRESS:
+            return constants.INVALID_GUID
         mac = mac.replace(':','')
         prefix = mac[:6]
         suffix = mac[6:]

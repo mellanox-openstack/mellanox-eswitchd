@@ -55,3 +55,5 @@ INVALID_MAC = '00:00:00:00:00:00'
 
 ADMIN_GUID_PATH = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s"
 
+INVALID_GUID = 'ffffffffffffffff'
+
