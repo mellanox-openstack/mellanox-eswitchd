@@ -39,6 +39,9 @@ class ResourceManager:
         pci_id, hca_port, pf_mlx_dev = self._get_pf_details(pf)
         self.device_db.add_fabric(fabric, pf, pci_id, hca_port, fabric_type, pf_mlx_dev)
         eths,vfs = self.discover_devices(pf,hca_port)
+        if fabric_type == 'ib':
+            eths = []
+        LOG.debug("PF %s, eths=%s, vfs=%s" % (pf, eths, vfs))
         self.device_db.set_fabric_devices(fabric,eths,vfs)  
     
     def scan_attached_devices(self):
@@ -100,7 +103,7 @@ class ResourceManager:
             else:
                 vf = os.readlink(vf_path).strip('../')
                 vfs.append(vf) 
-        return (eths,vfs)
+        return (eths, vfs)
         
     def get_free_eths(self, fabric):
         return self.device_db.get_free_eths(fabric)

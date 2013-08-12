@@ -57,3 +57,6 @@ ADMIN_GUID_PATH = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s"
 
 INVALID_GUID = 'ffffffffffffffff'
 
+IFCS_PATH = '/sys/class/net/*'
+
+

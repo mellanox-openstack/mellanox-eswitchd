@@ -61,18 +61,23 @@ class eSwitchHandler(object):
             fabric_type = None
             
             if pf in ('autoib', 'autoeth'):
-                fabric_type = pf.replace('auto', '')
-                pf = self.pci_utils.get_pf(fabric_type)
+                fabric_type = pf.strip('auto')
+                pf = self.pci_utils.get_auto_pf(fabric_type)
             else:
-                for type in ("ib", "eth"):
-                    if pf.startswith(type):
-                        fabric_type = type
+                fabric_type = self.pci_utils.get_interface_type(pf)
+                if (not self.pci_utils.verify_vendor_pf(pf, constants.VENDOR) or
+                    not self.pci_utils.is_sriov_pf(pf) or
+                    not self.pci_utils.is_ifc_module(pf, fabric_type)):
+                        LOG.error("PF %s must have Mellanox Vendor ID"
+                                  ",SR-IOV and driver module enabled.Terminating!" % pf)
+                        sys.exit(1) 
+
             if fabric_type:
                 self.eswitches[fabric] = eswitch_db.eSwitchDB()
                 self._add_fabric(fabric, pf, fabric_type)
                 res_fabrics.append((fabric, pf, fabric_type))
             else:
-                LOG.debug("Problem with PF=auto.Terminating!")
+                LOG.debug("No fabric type for PF:%s.Terminating!" % pf)
                 sys.exit(1)
         self.sync_devices()  
         if hasattr(self, 'of_handler'):
@@ -414,3 +419,6 @@ class eSwitchHandler(object):
         self._config_port_down(dev)
         cmd = ['ip', 'link', 'set', dev, 'name', device_name]       
         execute(cmd, root_helper='sudo')        
+
+if __name__ == '__main__':
+    handler = eSwitchHandler([('default','autoeth'),])

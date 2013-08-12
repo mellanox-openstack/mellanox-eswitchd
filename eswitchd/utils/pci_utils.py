@@ -15,16 +15,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import ethtool
 import glob
+import logging
 import os
 import re
-import logging
+import sys
 from command_utils import execute
 from eswitchd.common import constants
 
 LOG = logging.getLogger('eswitchd')
 
 class pciUtils:
+    NET_PATH =  "/sys/class/net/"
     VF_PF_NETDEV =  "/sys/bus/pci/devices/VF/physfn/net"
     ETHS_PATH = "/sys/class/net/eth*"
     ETH_PF_NETDEV = "/sys/class/net/DEV/device/physfn/net"
@@ -36,12 +39,12 @@ class pciUtils:
     ETH_PORT = ETH_PATH + "/dev_id"
     LINK_PATH = ETH_PATH + "/carrier"
     PF_MLX_DEV_PATH = "/sys/class/infiniband/*"
-    constants.SUBS_DEV_PATH = ETH_DEV + '/subsystem_device'
-    constants.VENDOR_PATH = ETH_DEV + '/vendor'
+    VENDOR_PATH = ETH_DEV + '/vendor'
 
     VF_BIND_PATH =  "/sys/bus/pci/drivers/mlx4_core/bind"
     VF_UNBIND_PATH =  "/sys/bus/pci/drivers/mlx4_core/unbind"
     VFS_PATH = ETH_DEV + "/virtfn*"
+
    
     def __init__(self):
         pass
@@ -57,60 +60,59 @@ class pciUtils:
         except IOError:
             return 
 
-    def get_pf(self, fabric_type):
+    def verify_vendor_pf(self, pf, vendor_id = constants.VENDOR):
         """
-        Scan the system to find a PF with state UP
-        """
-        if fabric_type == 'ib':
-            eths = glob.glob(self.IBS_PATH)
+	Verify that PF has the specified vendor id
+	"""
+        vendor_path = pciUtils.VENDOR_PATH.replace("ETH", pf)
+        if self.get_dev_attr(vendor_path) == vendor_id:
+	        return True
         else:
-            eths = glob.glob(self.ETHS_PATH)
-        pfs = []
-        for eth in eths:
-            eth = eth.split('/')[-1]
-            vendor_path = constants.VENDOR_PATH.replace("ETH", eth)
-            subs_dev_path = constants.SUBS_DEV_PATH.replace("ETH", eth)
+            return False
 
-            if self.get_dev_attr(vendor_path) == constants.VENDOR:
-                if self.get_dev_attr(subs_dev_path) == constants.SUBS_DEV:
-                    pfs.append(eth)
+    def is_sriov_pf(self, pf):
+        vfs_path = pciUtils.VFS_PATH.replace("ETH", pf)
+        vfs = glob.glob(vfs_path)
+        if vfs:
+            return True
+        else:
+            return 
+        
+    def get_interface_type(self, ifc):
+        cmd = ['ip', '-o', 'link', 'show', 'dev', ifc]
+        try:
+            result = execute(cmd, root_helper='sudo')
+        except Exception,e:
+            LOG.warning("Failed to execute command %s due to %s",cmd,e)
+            raise
+        if result.find('link/ether') != -1:
+            return 'eth'
+        elif result.find('link/infiniband') != -1:
+            return 'ib'
+        else:
+            return None
 
-        if not pfs:
-            LOG.debug("No PF was found!")
-            return 
-        else:
-           pfs_with_vfs = []
-           for pf in pfs:
-               vfs_path = pciUtils.VFS_PATH.replace("ETH", pf)
-               vfs = glob.glob(vfs_path)
-               if vfs:
-                   pfs_with_vfs.append(pf)
-        if not pfs_with_vfs:
-            LOG.debug("No PF with VFs was found! "+
-                      "Did you configure SR-IOV in /etc/modprobe.d/mlx4_core.conf?")
-            return 
-        elif len(pfs_with_vfs) == 1:
-            return pfs_with_vfs[0]
-        else:
-            pfs_up = []
-            for pf in pfs:
-                link_path = pciUtils.LINK_PATH.replace("ETH", pf)
-                if self.get_dev_attr(link_path) == constants.LINK_UP:
-                    pfs_up.append(pf)
-        if pfs_up:
-            if len(pfs_up) > 1:
-                LOG.debug("Found the following PFs up: %s\nPlease configure one of them in the configuration file\n" % ",".join(pfs_up))
-            else:
-                LOG.debug("PF is %s" % pfs_up[0])
-                return pfs_up[0]
-        else:
-            LOG.debug("None of the PFs: %s is up!" % ",".join(pfs))
-            return
+    def is_ifc_module(self, ifc, fabric_type):
+        modules = {'eth':'mlx4_en', 'ib':'ipoib'}
+        if modules[fabric_type] == ethtool.get_module(ifc):
+            return True
+        
+    def filter_ifcs_module(self, ifcs, fabric_type):
+        return [ifc for ifc in ifcs if self.is_ifc_module(ifc, fabric_type)]
+
+    def get_auto_pf(self, fabric_type):
+        ifcs = ethtool.get_devices()
+        pfs = filter(self.verify_vendor_pf, ifcs) 
+        pfs = filter(self.is_sriov_pf, pfs)
+        pfs = self.filter_ifcs_module(pfs, fabric_type)
+        if len(pfs) != 1:
+            LOG.error("Multiple PFs found %s.Configure Manually." % pfs)
+            sys.exit(1)
+        return pfs[0]
 
     def get_eth_mac(self, dev):
         mac_path = self.ETH_MAC.replace("ETH", dev)
         return self.get_dev_attr(mac_path)
-        
      
     def get_eth_vf(self, dev):
         """
