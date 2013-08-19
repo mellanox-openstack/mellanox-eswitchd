@@ -70,7 +70,7 @@ class ResourceManager:
             vm_id = tree.find('uuid').text
             for dev in self._get_attached_interfaces(interfaces):
                 devices['direct'].append(dev)
-                vm_ids[dev] = vm_id
+                vm_ids[dev[0]] = vm_id
             for dev in self._get_attached_hostdevs(hostdevs):
                 devices['hostdev'].append(dev)
                 vm_ids[dev[0]] = vm_id
