@@ -97,3 +97,12 @@ class ConnUtil(object):
         recv_msg = self.send_msg(msg)
         dev = recv_msg['dev']
         return dev
+
+    def get_tables(self, fabric):
+        msg = json.dumps({'action':'get_eswitch_tables', 
+                          'fabric':fabric, 
+                          })
+        recv_msg = self.send_msg(msg)
+        tables = recv_msg['tables']
+        return tables 
+

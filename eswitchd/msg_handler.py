@@ -292,6 +292,22 @@ class UpdateFlowId(BasicMessageHandler):
         ret = eSwitchHandler.update_flow_id(fabric, old_flow_id, new_flow_id)
         return self.build_response(ret, response = {})  
        
+class GetEswitchTables(BasicMessageHandler):
+    MSG_ATTRS_MANDATORY_MAP = set(['fabric'])
+
+    def __init__(self,msg):
+        BasicMessageHandler.__init__(self, msg)
+
+    def execute(self, eSwitchHandler):
+        fabric = self.msg.get('fabric', '*')               
+        if fabric == '*':
+            fabrics = eSwitchHandler.eswitches.keys()
+            LOG.debug("fabrics =%s",fabrics)
+        else:
+            fabrics = [fabric]
+
+        return self.build_response(True, response = {'tables':eSwitchHandler.get_eswitch_tables(fabrics)})  
+
 class MessageDispatch(object):
     MSG_MAP = {
                'create_port': AttachVnic,
@@ -307,6 +323,7 @@ class MessageDispatch(object):
                'acl_delete': DeleteAclRule,
                'flow_id_update': UpdateFlowId,
                'set_priority': SetPriority, 
+               'get_eswitch_tables': GetEswitchTables,
                }
     def __init__(self,eSwitchHandler):
         self.eSwitchHandler = eSwitchHandler

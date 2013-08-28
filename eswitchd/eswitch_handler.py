@@ -323,6 +323,19 @@ class eSwitchHandler(object):
             ret = eswitch.update_flow_id(old_flow_id, new_flow_id)
         return ret
 
+    def get_eswitch_tables(self, fabrics):
+        tables = {}
+        for fabric in fabrics:
+            eswitch = self._get_vswitch_for_fabric(fabric)
+            if eswitch:
+#                 tables[fabric] = "{fabric: %s, port_table:%s, port_policy: %s}" %  (fabric, eswitch.get_port_table(),
+#                                   eswitch.get_port_policy())
+                tables[fabric] = {'port_table':eswitch.get_port_table_matrix(), 
+                                  'port_policy': eswitch.get_port_policy_matrix()}                                              
+            else:
+                LOG.debug("Get eswitch tables: No eswitch %s" % fabric)
+        return tables
+
     def _get_vswitch_for_fabric(self, fabric):
         if fabric in self.eswitches:
             return self.eswitches[fabric]

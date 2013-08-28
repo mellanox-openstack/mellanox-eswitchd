@@ -61,8 +61,20 @@ class eSwitchDB():
         def get_port_policy(self):
             return self.port_policy
         
+        def get_port_policy_matrix(self):
+            table_matrix = [ ['VNIC_MAC','VLAN','PRIORITY','DEV','DEVICE_ID']]
+            for vnic_mac, port_policy in self.port_policy.items():
+                table_matrix.append([vnic_mac,port_policy['vlan'], port_policy['priority'], port_policy['dev'],port_policy['device_id']])
+            return table_matrix
+        
         def get_port_table(self):
             return self.port_table
+        
+        def get_port_table_matrix(self):
+            table_matrix = [ ['PORT_NAME','TYPE','VNIC','STATE','ALIAS','DEVICE_ID']]
+            for port_name, port_data in self.port_table.items():
+                table_matrix.append([port_name,port_data['type'], port_data['vnic'],port_data['state'],port_data['alias'],port_data['device_id']])
+            return table_matrix
         
         def get_vlan(self, vnic_mac):
             if self.vnic_exists(vnic_mac):
@@ -79,6 +91,7 @@ class eSwitchDB():
                 self.port_policy.update({vnic_mac: {'vlan':None,'dev':None,
                                                     'device_id':None,
                                                     'port_id':None,
+                                                    'priority':None,
                                                     'flow_ids':set([])}})
             
         def get_dev_type(self, dev):
@@ -227,4 +240,3 @@ class eSwitchDB():
                     ref      = self.acl_table[flow_id]['loc']
                     acls.append([acl_rule, ref])
             return acls                                    
-                
