@@ -181,9 +181,11 @@ class PortRelease(BasicMessageHandler):
         if ref_by not in ref_by_keys:
             reason = "reb_by %s is not supported" % ref_by
         else:
-            ret = eSwitchHandler.port_release(fabric, vnic_mac)
-            if not ret:
+            try:
+                eSwitchHandler.port_release(fabric, vnic_mac)
+            except Exception,e:
                 reason = "port release failed"
+                LOG.exception("PortRelease failed")
         if reason:
             return self.build_response(False, reason=reason)
         return self.build_response(True, response = {})

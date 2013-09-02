@@ -234,8 +234,13 @@ class eSwitchHandler(object):
         """
         @todo: handle failures
         """
-        ret = self.set_vlan(fabric, vnic_mac, constants.UNTAGGED_VLAN_ID)
-        self.port_down(fabric, vnic_mac)
+        ret = None
+        eswitch = self._get_vswitch_for_fabric(fabric)
+        dev = eswitch.get_dev_for_vnic(vnic_mac)
+        if dev:
+           if eswitch.get_port_state(dev) == constants.VPORT_STATE_UNPLUGGED:
+              ret = self.set_vlan(fabric, vnic_mac, constants.UNTAGGED_VLAN_ID)
+              self.port_down(fabric, vnic_mac)
         eswitch = self._get_vswitch_for_fabric(fabric)
         eswitch.port_release(vnic_mac)
         return ret

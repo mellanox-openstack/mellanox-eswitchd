@@ -46,7 +46,11 @@ class eSwitchDB():
             return self.port_table[dev]['type']
         
         def get_port_state(self, dev):
-            return self.port_table[dev]['state']
+            state = None
+            dev = self.port_table.get(dev)
+            if dev:
+                state = dev.get('state')
+            return state
 
         def get_attached_vnics(self):
             vnics = {}
@@ -172,8 +176,6 @@ class eSwitchDB():
         def detach_vnic(self, vnic_mac):
             dev = self.get_dev_for_vnic(vnic_mac)
             if dev:
-                for attr in ['vnic_mac','device_id']:
-                    self.port_policy[vnic_mac][attr] = None
                 self.port_table[dev]['vnic'] = None
                 self.port_table[dev]['alias'] = None
                 self.port_table[dev]['state'] = constants.VPORT_STATE_UNPLUGGED
@@ -183,8 +185,8 @@ class eSwitchDB():
         def port_release(self, vnic_mac):
             try:
                 dev = self.get_dev_for_vnic(vnic_mac)
-                self.port_table[dev]['state'] = None
                 vnic = self.port_policy.pop(vnic_mac)
+                self.port_table[dev]['state'] = None
                 vnic['type'] = self.port_table[vnic['dev']]['type']
                 return vnic
             except KeyError:
