@@ -20,8 +20,12 @@ from oslo.config import cfg
 DEFAULT_INTERFACE_MAPPINGS = []
 
 mlx_daemon_opts = [
-                    cfg.StrOpt('socket_vif', default="tcp://0.0.0.0:5001"),
-                    cfg.StrOpt('socket_of', default="tcp://0.0.0.0:5000"),
+                    cfg.StrOpt('socket_os_transport', default="tcp"),
+                    cfg.StrOpt('socket_of_transport', default="tcp"),
+                    cfg.StrOpt('socket_os_port', default="60001"),
+                    cfg.StrOpt('socket_of_port', default="60000"),
+                    cfg.StrOpt('socket_os_addr', default="0.0.0.0"),
+                    cfg.StrOpt('socket_of_addr', default="0.0.0.0"),
                     cfg.ListOpt('fabrics',
                                 default=DEFAULT_INTERFACE_MAPPINGS,
                                 help=("List of <physical_network>:<physical_interface>")),

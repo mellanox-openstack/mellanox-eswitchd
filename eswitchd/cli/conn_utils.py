@@ -16,11 +16,13 @@
 # limitations under the License.
 
 import json
+from oslo.config import cfg
 import zmq
-from eswitchd.cli import exceptions
 import logging
+from eswitchd.cli import exceptions
+from eswitchd.common import config, constants
+from eswitchd.utils.helper_utils import set_conn_url 
 
-MLX_DAEMON = "tcp://127.0.0.1:5001"
 REQUEST_TIMEOUT = 5000
 logging.basicConfig()
 LOG = logging.getLogger(__name__)
@@ -29,12 +31,17 @@ LOG = logging.getLogger(__name__)
 class ConnUtil(object):
     def __init__(self):
         self.__conn = None
+        
+        transport = cfg.CONF.DAEMON.socket_os_transport
+        port = cfg.CONF.DAEMON.socket_os_port
+        addr = cfg.CONF.DAEMON.socket_os_addr
+        self.conn_url = set_conn_url(transport, addr, port)
 
     def send_msg(self,msg):
         context = zmq.Context()
         socket = context.socket(zmq.REQ)
         socket.setsockopt(zmq.LINGER, 0)
-        socket.connect(MLX_DAEMON)
+        socket.connect(self.conn_url)
 
         try:
             socket.send(msg)

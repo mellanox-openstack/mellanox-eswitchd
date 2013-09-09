@@ -59,4 +59,5 @@ INVALID_GUID = 'ffffffffffffffff'
 
 IFCS_PATH = '/sys/class/net/*'
 
+CONN_URL = '%(transport)s://%(addr)s:%(port)s'
 

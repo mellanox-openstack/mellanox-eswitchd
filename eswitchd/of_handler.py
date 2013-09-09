@@ -37,6 +37,8 @@ class OfHandler(object):
     def _parse_config(self):
         self.of_fabrics = {}
         fabrics_config = cfg.CONF.OF.of_agent_mappings
+        self.socket_of_port = cfg.CONF.DAEMON.socket_of_port
+
         if fabrics_config:
             for entry in fabrics_config:
                 if ':' in entry:
@@ -64,7 +66,7 @@ class OfHandler(object):
                 dpid = self.of_fabrics[fabric]['dpid']
                 if dpid == 'auto':
                     dpid = self._get_dpid(pf, fabric_type)
-                cmd = [OF_CMD, '-v', '-c', controller, '-p', self.daemon_ip, '-f', fabric, '-m', dpid]
+                cmd = [OF_CMD, '-v', '-c', controller, '-p', "%s:%s" % (self.daemon_ip, self.socket_of_port), '-f', fabric, '-m', dpid]
                 of_log_file = OF_LOG.replace('dpid', dpid)
                 log = open(of_log_file, 'a')
                 execute_bg(cmd, log=log)
