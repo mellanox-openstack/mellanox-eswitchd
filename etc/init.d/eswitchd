@@ -26,7 +26,12 @@ start() {
     echo -n $"Starting $prog: "
    
     if [ "$OPENSTACK" == "yes" ];then
-        daemon --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf --config-file $plugin_config &>/dev/null & echo \$! > $pidfile"
+        if [ -f $plugin_config ];then
+            daemon --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf --config-file $plugin_config &>/dev/null & echo \$! > $pidfile"
+        else
+            echo $"Configured with OPENTACK=yes but can't find $plugin_config"
+            failure $"Configured with OPENTACK=yes but can't find $plugin_config"
+        fi
     else
         daemon --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf &>/dev/null & echo \$! > $pidfile"
     fi
