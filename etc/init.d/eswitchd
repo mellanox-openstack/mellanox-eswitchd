@@ -14,7 +14,7 @@ exec="/usr/bin/eswitchd"
 config="/etc/$proj/eswitchd.conf"
 pidfile="/var/run/$proj/$prog.pid"
 logfile="/var/log/eswitchd/eswitchd.log"
-plugin_config="/etc/quantum/plugins/mlnx/mlnx_conf.ini"
+plugin_config="/etc/neutron/plugins/mlnx/mlnx_conf.ini"
 
 [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
