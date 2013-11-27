@@ -14,7 +14,8 @@ exec="/usr/bin/eswitchd"
 config="/etc/$proj/eswitchd.conf"
 pidfile="/var/run/$proj/$prog.pid"
 logfile="/var/log/eswitchd/eswitchd.log"
-plugin_config="/etc/neutron/plugins/mlnx/mlnx_conf.ini"
+neutron_plugin_config="/etc/neutron/plugins/mlnx/mlnx_conf.ini"
+quantum_plugin_config="/etc/quantum/plugins/mlnx/mlnx_conf.ini"
 
 [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
@@ -26,11 +27,20 @@ start() {
     echo -n $"Starting $prog: "
    
     if [ "$OPENSTACK" == "yes" ];then
-        if [ -f $plugin_config ];then
+        if [ -r $neutron_plugin_config ];then
+            plugin_config=$neutron_plugin_config
+
+        elif [ -r $quantum_plugin_config ];then
+            plugin_config=$quantum_plugin_config
+        fi 
+ 
+        if [ ! -z $plugin_config ];then
+            echo $plugin_config
             daemon --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf --config-file $plugin_config &>/dev/null & echo \$! > $pidfile"
         else
-            echo $"Configured with OPENTACK=yes but can't find $plugin_config"
-            failure $"Configured with OPENTACK=yes but can't find $plugin_config"
+            echo "Configured with OPENTACK=yes but can't find configuration file"
+            echo_failure
+            exit 1
         fi
     else
         daemon --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf &>/dev/null & echo \$! > $pidfile"
