@@ -16,7 +16,6 @@ script
         NEUTRON_PLUGIN_CONF="/etc/neutron/plugins/mlnx/mlnx_conf.ini"
         ESWITCHD_CONF=/etc/eswitchd/eswitchd.conf
         . /etc/default/eswitchd
-        echo $SHELL
         if [ "$OPENSTACK" = "yes" ]; then
             if [ -r $QUNATUM_PLUGIN_CONF ];then
                 PLUGIN_CONF=$QUNATUM_PLUGIN_CONF
