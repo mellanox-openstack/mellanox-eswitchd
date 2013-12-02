@@ -35,7 +35,6 @@ start() {
         fi 
  
         if [ ! -z $plugin_config ];then
-            echo $plugin_config
             daemon --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf --config-file $plugin_config &>/dev/null & echo \$! > $pidfile"
         else
             echo "Configured with OPENTACK=yes but can't find configuration file"
