@@ -47,7 +47,7 @@ class ResourceManager:
     def scan_attached_devices(self):
         devices = {'direct':[],'hostdev':[]}
         vm_ids = {}
-        conn = libvirt.open('qemu:///system')
+        conn = libvirt.openReadOnly('qemu:///system')
         domains = []
         self.macs_map = self._get_vfs_macs()
         domains_names = conn.listDefinedDomains()
