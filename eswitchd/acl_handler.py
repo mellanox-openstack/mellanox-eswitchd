@@ -86,10 +86,10 @@ class EthtoolAclHandler(AclHandler):
                 if acl_val:    
                     ethtool_cmd = ethtool_cmd + [acl_param, acl_val]
                 
-        execute(ethtool_cmd, root_helper='sudo')
+        execute(ethtool_cmd, root_helper=None)
         return (acl_rule['loc']) 
     
     def del_acl_rule(self, pf, ref):
         loc = '%.0f'%(ref)
         cmd = ['ethtool', '-U', pf ,'delete', loc]
-        execute(cmd, root_helper='sudo')
+        execute(cmd, root_helper=None)
