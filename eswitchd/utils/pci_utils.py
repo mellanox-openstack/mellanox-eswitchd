@@ -81,7 +81,7 @@ class pciUtils:
     def get_interface_type(self, ifc):
         cmd = ['ip', '-o', 'link', 'show', 'dev', ifc]
         try:
-            result = execute(cmd, root_helper='sudo')
+            result = execute(cmd, root_helper=None)
         except Exception,e:
             LOG.warning("Failed to execute command %s due to %s",cmd,e)
             raise
@@ -171,7 +171,7 @@ class pciUtils:
         vf_mac_pattern = re.compile("vf\s+(\d+)\s+MAC\s+(\S+)\,")
         cmd = ['ip', 'link', 'show', 'dev', pf]
         try:
-            result = execute(cmd, root_helper='sudo')
+            result = execute(cmd, root_helper=None)
             for line in result.splitlines():
                 match = vf_mac_pattern.search(line)
                 if match:
@@ -218,7 +218,7 @@ class pciUtils:
         else:
             cmd = ["echo", vf, ">",pciUtils.VF_UNBIND_PATH]
         try:
-            result = execute(cmd, root_helper='sudo')
+            result = execute(cmd, root_helper=None)
         except Exception,e:
             LOG.warning("Failed to execute command %s due to %s",cmd,e)
             raise

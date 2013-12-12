@@ -18,17 +18,20 @@
 import os
 import shlex
 import subprocess
-
-#from nova.openstack.common import log as logging
 import logging
+from oslo.config import cfg
 
 LOG = logging.getLogger('eswitchd')
 
+def get_root_helper():
+    root_helper =  'sudo eswitch-rootwrap %s' % cfg.CONF.DAEMON.rootwrap_conf
+    return root_helper
 
 def execute(cmd, root_helper=None, process_input=None, addl_env=None,
             check_exit_code=True, return_stderr=False):
-    if root_helper:
-        cmd = shlex.split(root_helper) + cmd
+    if not root_helper:
+        root_helper = get_root_helper()
+    cmd = shlex.split(root_helper) + cmd
     cmd = map(str, cmd)
     LOG.debug("Running command: " + " ".join(cmd))
     env = os.environ.copy()
@@ -50,8 +53,9 @@ def execute(cmd, root_helper=None, process_input=None, addl_env=None,
     return return_stderr and (_stdout, _stderr) or _stdout
 
 def execute_bg(cmd, root_helper=None, log=None):
-    if root_helper:
-        cmd = shlex.split(root_helper) + cmd
+    if not root_helper:
+        root_helper = get_root_helper()
+    cmd = shlex.split(root_helper) + cmd
     cmd = map(str, cmd)
     LOG.debug("Running command: " + " ".join(cmd))
     env = os.environ.copy()

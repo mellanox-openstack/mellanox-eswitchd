@@ -389,12 +389,12 @@ class eSwitchHandler(object):
 
         else:
             cmd = ['ip', 'link','set',pf, 'vf', vf_index ,'mac',vnic_mac]
-            execute(cmd, root_helper='sudo')
+            execute(cmd, root_helper=None)
             
     def _config_vlan_priority_direct(self, pf, vf_index, dev, vlan,priority='0'):
         self._config_port_down(dev)
         cmd = ['ip', 'link','set',pf , 'vf', vf_index, 'vlan', vlan, 'qos', priority]
-        execute(cmd, root_helper='sudo')
+        execute(cmd, root_helper=None)
         self._config_port_up(dev)
         
     def _config_vlan_priority_hostdev(self, fabric, pf, vf_index, dev, vlan, priority='0'):
@@ -404,7 +404,7 @@ class eSwitchHandler(object):
             self._config_vlan_ib(vlan, fabric_details, dev, vf_index)
         else: 
             cmd = ['ip', 'link','set',pf , 'vf', vf_index, 'vlan', vlan, 'qos', priority]
-            execute(cmd, root_helper='sudo')
+            execute(cmd, root_helper=None)
     
     def _config_vlan_ib(self, vlan, fabric_details, dev, vf_index):
         hca_port = fabric_details['hca_port'] 
@@ -427,16 +427,16 @@ class eSwitchHandler(object):
     def _config_port_down(self, dev, vnic_type=constants.VIF_TYPE_DIRECT):
         if vnic_type == constants.VIF_TYPE_DIRECT:
             cmd = ['ip', 'link', 'set', dev, 'down']       
-            execute(cmd, root_helper='sudo')
+            execute(cmd, root_helper=None)
         
     def _config_port_up(self,dev):
         cmd = ['ip', 'link', 'set', dev, 'up']       
-        execute(cmd, root_helper='sudo')        
+        execute(cmd, root_helper=None)        
 
     def _set_devname(self, device_name, dev):
         self._config_port_down(dev)
         cmd = ['ip', 'link', 'set', dev, 'name', device_name]       
-        execute(cmd, root_helper='sudo')        
+        execute(cmd, root_helper=None)        
 
 if __name__ == '__main__':
     handler = eSwitchHandler([('default','autoeth'),])

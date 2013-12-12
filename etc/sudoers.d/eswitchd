@@ -1,0 +1,3 @@
+Defaults:eswitch !requiretty
+
+eswitch ALL = (root) NOPASSWD: /usr/bin/eswitch-rootwrap /etc/eswitchd/rootwrap.conf *

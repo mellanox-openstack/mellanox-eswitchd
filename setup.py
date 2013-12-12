@@ -17,7 +17,7 @@ import setuptools
 
 Name = 'eswitchd'
 Url = ""
-Version = 0.6
+Version = 0.7
 License = 'Apache License 2.0'
 Author = 'Mellanox'
 AuthorEmail = 'openstack@mellanox.com'
@@ -46,6 +46,7 @@ setuptools.setup(
         'console_scripts': [
             'eswitchd = eswitchd.eswitch_daemon:main',
             'ebrctl = eswitchd.cli.ebrctl:main',
+            'eswitch-rootwrap = eswitchd.rootwrap.cmd:main'
         ]
     },
 )
