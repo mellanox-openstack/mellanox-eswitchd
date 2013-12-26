@@ -26,24 +26,7 @@ start() {
     [ -f $config ] || exit 6
     echo -n $"Starting $prog: "
    
-    if [ "$OPENSTACK" == "yes" ];then
-        if [ -r $neutron_plugin_config ];then
-            plugin_config=$neutron_plugin_config
-
-        elif [ -r $quantum_plugin_config ];then
-            plugin_config=$quantum_plugin_config
-        fi 
- 
-        if [ ! -z $plugin_config ];then
-            daemon --user eswitch --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf --config-file $plugin_config &>/dev/null & echo \$! > $pidfile"
-        else
-            echo "Configured with OPENTACK=yes but can't find configuration file"
-            echo_failure
-            exit 1
-        fi
-    else
-        daemon --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf &>/dev/null & echo \$! > $pidfile"
-    fi
+    daemon --user eswitch --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf &>/dev/null & echo \$! > $pidfile"
     retval=$?
     echo
     [ $retval -eq 0 ] && touch $lockfile
