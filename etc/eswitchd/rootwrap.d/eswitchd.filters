@@ -4,3 +4,4 @@
 [Filters]
 ip: CommandFilter, ip, root
 ethtool: CommandFilter, ethtool, root
+ebrctl: CommandFilter, ebrctl, root
