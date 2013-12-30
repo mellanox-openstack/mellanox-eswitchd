@@ -15,6 +15,15 @@ client = conn_utils.ConnUtil()
 
 
 def parse():
+    """
+    Main method that manages supported CLI commands.
+
+    The actions that are supported throught the CLI are:
+    write-sys, del-port, allocate-port and add-port
+
+    Each action is matched with method that should handle it
+    e.g. write-sys action is matched with  write_sys method
+    """
     parser = argparse.ArgumentParser(prog='ebrctl')
     parser.add_argument('action', action='store_true')
 
