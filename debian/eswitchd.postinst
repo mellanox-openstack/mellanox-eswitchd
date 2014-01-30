@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+
+/usr/bin/getent group eswitch  > /dev/null || /usr/sbin/groupadd -r eswitch
+/usr/bin/getent passwd eswitch > /dev/null || /usr/sbin/useradd -r -g eswitch -d /var/lib/eswitch -s /bin/false eswitch
+
+chmod 440 /etc/sudoers.d/eswitchd
+chmod 755 /etc/eswitchd/rootwrap.conf
+chmod 644 /etc/eswitchd/rootwrap.d/eswitchd.filters
+chown eswitch:eswitch /var/run/eswitchd 
+chown eswitch:eswitch /var/log/eswitchd

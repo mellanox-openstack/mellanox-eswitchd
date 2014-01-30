@@ -1,5 +1,5 @@
-eswitchd (0.6-1) unstable; urgency=low
+eswitchd (0.8-1) unstable; urgency=low
 
-  * Havana release
+  * Run eswitchd as non root user
 
- -- Mellanox <openstack@mellanox.com>  Wed, 27 Nov 2013 09:20:00 +0300
+ -- Mellanox <openstack@mellanox.com>  Mon, 27 Jan 2014 09:20:00 +0300

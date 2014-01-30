@@ -12,21 +12,8 @@ pre-start script
 end script
 
 script
-        QUNATUM_PLUGIN_CONF="/etc/quantum/plugins/mlnx/mlnx_conf.ini"
-        NEUTRON_PLUGIN_CONF="/etc/neutron/plugins/mlnx/mlnx_conf.ini"
         ESWITCHD_CONF=/etc/eswitchd/eswitchd.conf
         . /etc/default/eswitchd
-        if [ "$OPENSTACK" = "yes" ]; then
-            if [ -r $QUNATUM_PLUGIN_CONF ];then
-                PLUGIN_CONF=$QUNATUM_PLUGIN_CONF
-            elif [ -r $NEUTRON_PLUGIN_CONF ];then
-                PLUGIN_CONF=$NEUTRON_PLUGIN_CONF
-            fi
-        fi
 
-if [ -z $PLUGIN_CONF ];then
-    exec start-stop-daemon --start --exec /usr/bin/eswitchd -- --config-file $ESWITCHD_CONF
-else
-    exec start-stop-daemon --start --exec /usr/bin/eswitchd -- --config-file $ESWITCHD_CONF --config-file $PLUGIN_CONF
-fi
+        exec start-stop-daemon --start --chuid eswitch --exec /usr/bin/eswitchd -- --config-file $ESWITCHD_CONF
 end script

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+deluser --system eswitch > /dev/null || true
+delgroup --system --only-if-empty eswitch > /dev/null || true
+
