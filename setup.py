@@ -17,7 +17,7 @@ import setuptools
 
 Name = 'eswitchd'
 Url = ""
-Version = 0.7
+Version = 0.9
 License = 'Apache License 2.0'
 Author = 'Mellanox'
 AuthorEmail = 'openstack@mellanox.com'
