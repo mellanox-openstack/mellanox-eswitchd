@@ -94,7 +94,7 @@ class pciUtils:
 
     def is_ifc_module(self, ifc, fabric_type):
         modules = {'eth':'mlx4_en', 'ib':'ipoib'}
-        if modules[fabric_type] == ethtool.get_module(ifc):
+        if modules[fabric_type] in ethtool.get_module(ifc):
             return True
         
     def filter_ifcs_module(self, ifcs, fabric_type):
