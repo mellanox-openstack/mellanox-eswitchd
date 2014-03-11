@@ -355,6 +355,12 @@ class eSwitchHandler(object):
         cmd = ['ebrctl', 'write-sys', path, ppkey_idx]
         execute(cmd, root_helper=None)
 
+    def _get_guid_idx(self, pf_mlx_dev, dev, hca_port):
+        path = "/sys/class/infiniband/%s/iov/%s/ports/%s/gid_idx/0" % (pf_mlx_dev, dev, hca_port)
+        with open(path) as fd:
+            idx = fd.readline().strip()
+        return idx
+
     def _get_guid_from_mac(self, mac):
         if mac == DEFAULT_MAC_ADDRESS:
             return constants.INVALID_GUID
@@ -372,9 +378,10 @@ class eSwitchHandler(object):
         if fabric_type == 'ib':
             hca_port = fabric_details['hca_port']
             pf_mlx_dev = fabric_details['pf_mlx_dev']
-
             self._config_vf_pkey(INVALID_PKEY, DEFAULT_PKEY_IDX, pf_mlx_dev, dev, hca_port)
-            path = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s" % (pf_mlx_dev, hca_port, int(vf_index) + 1)
+
+            guid_idx = self._get_guid_idx(pf_mlx_dev, dev, hca_port)
+            path = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s" % (pf_mlx_dev, hca_port, guid_idx)
             cmd = ['ebrctl', 'write-sys', path, vguid]
             execute(cmd, root_helper=None)
             ppkey_idx = self._get_pkey_idx(PARTIAL_VLAN, pf_mlx_dev, hca_port)
