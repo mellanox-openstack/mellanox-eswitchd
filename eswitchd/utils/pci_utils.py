@@ -45,10 +45,10 @@ class pciUtils:
     VF_UNBIND_PATH =  "/sys/bus/pci/drivers/mlx4_core/unbind"
     VFS_PATH = ETH_DEV + "/virtfn*"
 
-   
+
     def __init__(self):
         pass
- 
+
     def get_dev_attr(self, attr_path):
         """
         @param attr_path: The full path of the attribute of the device
@@ -58,7 +58,7 @@ class pciUtils:
             fd = open(attr_path)
             return fd.readline().strip()
         except IOError:
-            return 
+            return
 
     def verify_vendor_pf(self, pf, vendor_id = constants.VENDOR):
         """
@@ -76,8 +76,8 @@ class pciUtils:
         if vfs:
             return True
         else:
-            return 
-        
+            return
+
     def get_interface_type(self, ifc):
         cmd = ['ip', '-o', 'link', 'show', 'dev', ifc]
         try:
@@ -96,24 +96,37 @@ class pciUtils:
         modules = {'eth':'mlx4_en', 'ib':'ipoib'}
         if modules[fabric_type] in ethtool.get_module(ifc):
             return True
-        
+
     def filter_ifcs_module(self, ifcs, fabric_type):
         return [ifc for ifc in ifcs if self.is_ifc_module(ifc, fabric_type)]
 
     def get_auto_pf(self, fabric_type):
-        ifcs = ethtool.get_devices()
-        pfs = filter(self.verify_vendor_pf, ifcs) 
-        pfs = filter(self.is_sriov_pf, pfs)
-        pfs = self.filter_ifcs_module(pfs, fabric_type)
-        if len(pfs) != 1:
-            LOG.error("Multiple PFs found %s.Configure Manually." % pfs)
+        def log_error_and_exit(err_msg):
+            LOG.error(err_msg)
             sys.exit(1)
-        return pfs[0]
+
+        mlnx_pfs = [ifc for ifc in ethtool.get_devices()
+                    if self.verify_vendor_pf(ifc)]
+        if not mlnx_pfs:
+            log_error_and_exit("Didn't find any Mellanox devices.")
+
+        mlnx_pfs = [ifc for ifc in mlnx_pfs if self.is_sriov_pf(ifc)]
+        if not mlnx_pfs:
+            log_error_and_exit("Didn't find Mellanox NIC "
+                               "with SR-IOV capabilities.")
+        mlnx_pfs = self.filter_ifcs_module(mlnx_pfs, fabric_type)
+        if not mlnx_pfs:
+            log_error_and_exit("Didn't find Mellanox NIC of type %s with "
+                               "SR-IOV capabilites." % fabric_type)
+        if len(mlnx_pfs) != 1:
+            log_error_and_exit("Found multiple PFs %s. Configure Manually."
+                               % mlnx_pfs)
+        return mlnx_pfs[0]
 
     def get_eth_mac(self, dev):
         mac_path = self.ETH_MAC.replace("ETH", dev)
         return self.get_dev_attr(mac_path)
-     
+
     def get_eth_vf(self, dev):
         """
         @param dev: Ethetnet device
@@ -147,8 +160,8 @@ class pciUtils:
     def get_vf_index(self, dev, dev_type):
         """
         @param dev: Ethernet device or VF
-        @param dev_type: 'direct' or 'hostdev'        
-        @return: VF index 
+        @param dev_type: 'direct' or 'hostdev'
+        @return: VF index
         """
         if dev_type == 'direct':
             dev = self.get_eth_vf(dev)
@@ -156,7 +169,7 @@ class pciUtils:
             vf_index = self._calc_vf_index(dev)
             return vf_index
         return None
-   
+
     def get_eth_port(self, dev):
         port_path = pciUtils.ETH_PORT.replace("ETH", dev)
         try:
@@ -176,11 +189,11 @@ class pciUtils:
                 match = vf_mac_pattern.search(line)
                 if match:
                     vf_index, mac = match.groups()
-                    macs_map[vf_index] = mac  
+                    macs_map[vf_index] = mac
         except Exception,e:
             LOG.warning("Failed to execute command %s due to %s",cmd,e)
             raise
-        return macs_map                  
+        return macs_map
 
     def get_vfs_macs_ib(self, pf, pf_mlx_dev, hca_port):
         macs_map = {}
@@ -192,11 +205,11 @@ class pciUtils:
                 guid = f.readline().strip()
                 if guid == constants.INVALID_GUID:
                     mac = constants.INVALID_MAC
-                else: 
+                else:
                     head = guid[:6]
                     tail = guid[-6:]
                     mac = ":".join(re.findall('..?', head + tail))
-                macs_map[str(int(vf_index)-1)] = mac 
+                macs_map[str(int(vf_index)-1)] = mac
         return macs_map
 
     def get_device_address(self, hostdev):
@@ -206,7 +219,7 @@ class pciUtils:
         function = hostdev.attrib['function'][2:]
         dev = "%.4s:%.2s:%2s.%.1s" %(domain,bus,slot,function)
         return dev
-    
+
     def _calc_vf_index(self, dev):
         vf_address = re.split(r"\.|\:", dev)
         vf_index = int(vf_address[2]) * 8 + int(vf_address[3]) - 1
