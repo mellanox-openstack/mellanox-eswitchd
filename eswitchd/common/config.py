@@ -17,8 +17,22 @@
 
 from oslo.config import cfg
 
-DEFAULT_INTERFACE_MAPPINGS = []
 
+LOG_LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR')
+default_opts = [cfg.StrOpt('log_file',
+                           default='/var/log/eswitchd/eswitchd.log',
+                           help='Full path to log file'),
+                cfg.StrOpt('log_level',
+                           choices=LOG_LEVELS,
+                           default='DEBUG',
+                           help='Valid values: %s' % str(LOG_LEVELS)),
+                cfg.StrOpt('log_format',
+                           default=('%(asctime)s %(levelname)s '
+                                    '%(name)s [-] %(message)s'),
+                           help=('logging format, as supported by the python '
+                                 'logging module.'))]
+
+DEFAULT_INTERFACE_MAPPINGS = []
 mlx_daemon_opts = [
                     cfg.StrOpt('socket_os_transport', default="tcp"),
                     cfg.StrOpt('socket_of_transport', default="tcp"),
@@ -38,18 +52,20 @@ mlx_daemon_opts = [
                     cfg.StrOpt('rootwrap_conf',
                                default='/etc/eswitchd/rootwrap.conf',
                                help=('eswitchd rootwrap configuration file'))
-
 ]
+
 eswitch_opts = [
     cfg.ListOpt('physical_interface_mappings',
                 help=("List of <physical_network>:<physical_interface>"))
 ]
+
 of_agent_opts = [
     cfg.BoolOpt('start_of_agent', default="no"),
     cfg.ListOpt('of_agent_mappings',
                 #default=['mlx1:127.0.0.1:0002c9397000'],
                 help=("List of <fabric>:<controller_ip>:<dpid>"))
 ]
+cfg.CONF.register_opts(default_opts, "DEFAULT")
 cfg.CONF.register_opts(mlx_daemon_opts, "DAEMON")
 cfg.CONF.register_opts(eswitch_opts, "ESWITCH")
 cfg.CONF.register_opts(of_agent_opts, "OF")

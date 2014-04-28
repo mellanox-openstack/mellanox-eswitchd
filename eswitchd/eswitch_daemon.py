@@ -26,17 +26,26 @@ from eswitch_handler import eSwitchHandler
 from utils.helper_utils import set_conn_url
 import msg_handler as message
 
+
+cfg.CONF(project='eswitchd')
+
+logging.basicConfig(filename=cfg.CONF.DEFAULT.log_file,
+                    filemode='w',
+                    format=cfg.CONF.DEFAULT.log_format,
+                    level=logging.getLevelName(cfg.CONF.DEFAULT.log_level))
+
 LOG = logging.getLogger('eswitchd')
-   
-class MlxEswitchDaemon(object):   
+
+
+class MlxEswitchDaemon(object):
     def __init__(self):
         self.max_polling_count = cfg.CONF.DAEMON.max_polling_count
         self.default_timeout = cfg.CONF.DAEMON.default_timeout
         fabrics = self._parse_physical_mapping()
         self.eswitch_handler = eSwitchHandler(fabrics)
         self.dispatcher = message.MessageDispatch(self.eswitch_handler)
-       
-    def start(self):  
+
+    def start(self):
         self._init_connections()
 
     def _parse_physical_mapping(self):
@@ -61,7 +70,7 @@ class MlxEswitchDaemon(object):
                 LOG.error("Cannot parse Fabric Mappings")
                 raise Exception("Cannot parse Fabric Mappings")
         return fabrics
-        
+
     def _init_connections(self):
         context = zmq.Context()
         self.socket_of  = context.socket(zmq.REP)
@@ -80,7 +89,7 @@ class MlxEswitchDaemon(object):
         self.poller = zmq.Poller()
         self.poller.register(self.socket_of, zmq.POLLIN)
         self.poller.register(self.socket_os, zmq.POLLIN)
-        
+
     def _handle_msg(self):
         data = None
         conn = dict(self.poller.poll(self.default_timeout))
@@ -93,12 +102,12 @@ class MlxEswitchDaemon(object):
                 sender = self.socket_os
             if msg:
                 data = json.loads(msg)
-            
+
         if data:
-            result = self.dispatcher.handle_msg(data)     
+            result = self.dispatcher.handle_msg(data)
             msg = json.dumps(result)
             sender.send(msg)
-        
+
     def daemon_loop(self):
         LOG.info("Daemon Started!")
         polling_counter = 0
@@ -113,19 +122,18 @@ class MlxEswitchDaemon(object):
                 polling_counter = 0
             else:
                 polling_counter+=1
-            
+
 def main():
-    cfg.CONF(project='eswitchd')
     try:
         daemon = MlxEswitchDaemon()
         daemon.start()
     except Exception,e:
         LOG.exception("Failed to start EswitchDaemon - Daemon terminated! %s",e)
         sys.exit(1)
-        
+
     daemon.daemon_loop()
-          
+
 if __name__ == '__main__':
     main()
 
-    
+
