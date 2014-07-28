@@ -2,7 +2,7 @@
 description "Mellanox Eswitchd"
 author "Mellanox Openstack <openstack@mellanox.com>"
 
-start on started openibd
+start on (started openibd and started libvirt-bin and starting neutron-plugin-mlnx-agent)
 stop on runlevel [016]
 
 chdir /var/run
