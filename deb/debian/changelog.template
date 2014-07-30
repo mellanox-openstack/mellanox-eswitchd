@@ -1,4 +1,4 @@
-eswitchd (0.8-1) unstable; urgency=low
+eswitchd (@@VERSION@@-@@RELEASE@@) unstable; urgency=low
 
   * Run eswitchd as non root user
 
