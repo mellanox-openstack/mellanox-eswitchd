@@ -2,7 +2,7 @@
 description "Mellanox Eswitchd"
 author "Mellanox Openstack <openstack@mellanox.com>"
 
-start on (started openibd and started libvirt-bin and starting neutron-plugin-mlnx-agent)
+start on (started openibd and started libvirt-bin)
 stop on runlevel [016]
 
 chdir /var/run
@@ -16,4 +16,13 @@ script
         . /etc/default/eswitchd
 
         exec start-stop-daemon --start --chuid eswitch --exec /usr/bin/eswitchd -- --config-file $ESWITCHD_CONF
+end script
+
+post-start script
+       if [ -x /etc/init.d/neutron-plugin-mlnx-agent ] ; then
+        exec /etc/init.d/neutron-plugin-mlnx-agent restart
+       fi
+       if [ -x /etc/init.d/nova-compute ] ;then
+        exec /etc/init.d/nova-compute restart
+       fi
 end script
