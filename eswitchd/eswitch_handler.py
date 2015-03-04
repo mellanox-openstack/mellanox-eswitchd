@@ -37,7 +37,8 @@ DEFAULT_PKEY_IDX = '0'
 PARTIAL_PKEY_IDX = '1'
 BASE_PKEY = '0x8000'
 PADDING = '0000'
-PARTIAL_VLAN = -1
+DEFAULT_MASK = 0x7fff
+DEFAULT_PKEY = '0xffff'
 ACL_REF = 0
 
 
@@ -384,7 +385,7 @@ class eSwitchHandler(object):
             path = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s" % (pf_mlx_dev, hca_port, guid_idx)
             cmd = ['ebrctl', 'write-sys', path, vguid]
             execute(cmd, root_helper=None)
-            ppkey_idx = self._get_pkey_idx(PARTIAL_VLAN, pf_mlx_dev, hca_port)
+            ppkey_idx = self._get_pkey_idx(DEFAULT_PKEY, pf_mlx_dev, hca_port)
             if ppkey_idx >= 0:
                 self._config_vf_pkey(ppkey_idx, PARTIAL_PKEY_IDX, pf_mlx_dev, dev, hca_port)
             else:
@@ -412,7 +413,7 @@ class eSwitchHandler(object):
     def _config_vlan_ib(self, vlan, fabric_details, dev, vf_index):
         hca_port = fabric_details['hca_port']
         pf_mlx_dev = fabric_details['pf_mlx_dev']
-        ppkey_idx = self._get_pkey_idx(vlan, pf_mlx_dev, hca_port)
+        ppkey_idx = self._get_pkey_idx(str(vlan), pf_mlx_dev, hca_port)
         if ppkey_idx:
             self._config_vf_pkey(ppkey_idx, DEFAULT_PKEY_IDX, pf_mlx_dev, dev, hca_port)
 
@@ -423,7 +424,12 @@ class eSwitchHandler(object):
             fd = open(path)
             pkey = fd.readline()
             fd.close()
-            if (int(pkey, 0) - int(BASE_PKEY, 0)) == vlan:
+            # the MSB in pkey is the membership bit ( 0 - partial, 1 - full)
+            # the other 15 bit are the number of the pkey
+            # so we want to remove the 16th bit when compare pkey file
+            # to the vlan (pkey) we are looking for
+            is_match = int(pkey, 16) & DEFAULT_MASK == int(vlan, 16) & DEFAULT_MASK
+            if is_match:
                 return path.split('/')[-1]
         return None
 

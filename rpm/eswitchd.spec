@@ -19,10 +19,13 @@ Requires:   shadow-utils
 Requires:   glibc-common
 Requires(post):   chkconfig
 
-BuildRequires: python2-devel
 BuildRequires: python-setuptools
 BuildRequires: json-c
+%if %{rhel} == 7
+BuildRequires: systemd
+%else
 BuildRequires: zeromq
+%endif
 
 %description
 Mellanox eSwitch Daemon
@@ -106,6 +109,10 @@ install -D -m 755 etc/eswitchd/rootwrap.d/eswitchd.filters %{buildroot}%{_syscon
 %attr(0744, root, root) /usr/bin/ebrctl
 
 %changelog
+* Thu Mar 3  2015 Openstack Team <openstack@mellanox.com> 0.11-1
+  fix create pkey to support full pkey and partial pkey
+  add support for rhel7
+
 * Thu Jun 19 2014 Openstack Team <openstack@mellanox.com> 0.10-1
   Fixed eswitchd logging
   Fixed wrong error message when no PFs are found

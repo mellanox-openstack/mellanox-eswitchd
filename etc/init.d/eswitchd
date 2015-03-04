@@ -15,7 +15,6 @@ config="/etc/$proj/eswitchd.conf"
 pidfile="/var/run/$proj/$prog.pid"
 logfile="/var/log/eswitchd/eswitchd.log"
 neutron_plugin_config="/etc/neutron/plugins/mlnx/mlnx_conf.ini"
-quantum_plugin_config="/etc/quantum/plugins/mlnx/mlnx_conf.ini"
 
 [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
@@ -25,7 +24,8 @@ start() {
     [ -x $exec ] || exit 5
     [ -f $config ] || exit 6
     echo -n $"Starting $prog: "
-   
+    mkdir -p /var/run/$proj
+    chown eswitch /var/run/$proj
     daemon --user eswitch --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf &>/dev/null & echo \$! > $pidfile"
     retval=$?
     echo
@@ -40,13 +40,9 @@ stop() {
     retval=$?
     echo
     [ $retval -eq 0 ] && rm -f $lockfile
-    stop_lri
     return $retval
 }
 
-stop_lri() {
-    pkill -9 -f '/usr/local/bin/lri*'
-}
 restart() {
     stop
     start

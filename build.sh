@@ -62,6 +62,7 @@ function check_dist() {
 
 
 function build_rpm(){
+    mkdir -p /root/rpmbuild/SOURCES
     mkdir -p ${BUILD_SRC_DIR}
     cp -a ${CONFIG_DIR} ${BUILD_SRC_DIR}
     cp -a ${PROJECT} ${BUILD_SRC_DIR}
