@@ -18,13 +18,11 @@
 import json
 from oslo.config import cfg
 import zmq
-import logging
 from eswitchd.cli import exceptions
 from eswitchd.common import config, constants
 from eswitchd.utils.helper_utils import set_conn_url
 
 REQUEST_TIMEOUT = 5000
-LOG = logging.getLogger(__name__)
 
 
 class ConnUtil(object):
@@ -69,7 +67,6 @@ class ConnUtil(object):
             error_msg = "Action  %s failed: %s" %(msg['action'], msg['reason'])
         else:
             error_msg = "Unknown operation status %s" % msg['status']
-        LOG.error(error_msg)
         raise exceptions.MlxException(error_msg)
 
     def allocate_nic(self, vnic_mac, device_id, fabric, vnic_type, dev_name=None):
