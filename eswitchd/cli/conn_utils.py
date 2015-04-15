@@ -22,7 +22,7 @@ from eswitchd.cli import exceptions
 from eswitchd.common import config, constants
 from eswitchd.utils.helper_utils import set_conn_url
 
-REQUEST_TIMEOUT = 5000
+REQUEST_TIMEOUT = 50000
 
 
 class ConnUtil(object):
