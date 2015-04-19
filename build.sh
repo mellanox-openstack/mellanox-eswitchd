@@ -104,7 +104,7 @@ function build_deb(){
     rm -rf eswitchd
     cp -rf ../etc .
     cp -rf ../eswitchd .
-    cp -rf setup.py .
+    cp -rf ../setup.py .
     update_deb_version
     dpkg-buildpackage -tc -uc -us
     if [ $? != ${SUCCESS} ] ; then
