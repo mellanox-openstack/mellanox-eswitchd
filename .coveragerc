@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = eswitchd
+omit = eswitchd/openstack/*
+
+[report]
+ignore-errors = True

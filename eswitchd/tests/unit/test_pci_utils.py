@@ -1,12 +1,15 @@
 import contextlib
-import unittest
 import mock
+import sys
+sys.modules['ethtool'] = mock.Mock()
+
+from eswitchd.tests import base
 from eswitchd.utils import pci_utils
 
-
-class TestPciUtils(unittest.TestCase):
+class TestPciUtils(base.TestCase):
 
     def setUp(self):
+        super(TestPciUtils, self).setUp()
         self.pci_utils = pci_utils.pciUtils()
 
     def _assert_get_auto_pf_error(self, log_msg):
