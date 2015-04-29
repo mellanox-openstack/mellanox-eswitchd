@@ -228,7 +228,7 @@ class eSwitchHandler(object):
                     self._set_devname(dev, dev_name)
                 self.rm.deallocate_device(fabric, dev_type, dev)
         else:
-            LOG.error("No eSwitch found for Fabric %s", fabric)
+            LOG.warning("No eSwitch found for Fabric %s", fabric)
         return dev
 
     def port_release(self, fabric, vnic_mac):
@@ -385,7 +385,7 @@ class eSwitchHandler(object):
             path = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s" % (pf_mlx_dev, hca_port, guid_idx)
             cmd = ['ebrctl', 'write-sys', path, vguid]
             execute(cmd, root_helper=None)
-            ppkey_idx = self._get_pkey_idx(DEFAULT_PKEY, pf_mlx_dev, hca_port)
+            ppkey_idx = self._get_pkey_idx(int(DEFAULT_PKEY, 16), pf_mlx_dev, hca_port)
             if ppkey_idx >= 0:
                 self._config_vf_pkey(ppkey_idx, PARTIAL_PKEY_IDX, pf_mlx_dev, dev, hca_port)
             else:
@@ -428,7 +428,7 @@ class eSwitchHandler(object):
             # the other 15 bit are the number of the pkey
             # so we want to remove the 16th bit when compare pkey file
             # to the vlan (pkey) we are looking for
-            is_match = int(pkey, 16) & DEFAULT_MASK == int(vlan, 16) & DEFAULT_MASK
+            is_match = int(pkey, 16) & DEFAULT_MASK == int(vlan) & DEFAULT_MASK
             if is_match:
                 return path.split('/')[-1]
         return None
