@@ -111,7 +111,7 @@ class DetachVnic(BasicMessageHandler):
         if dev:
             return self.build_response(True, response = {'dev':dev})
         else:
-            return self.build_response(False, reason = 'Detach vnic failed')
+            return self.build_response(True, response = {})
 
 class SetVLAN(BasicMessageHandler):
     MSG_ATTRS_MANDATORY_MAP = set(['fabric','port_mac','vlan'])
