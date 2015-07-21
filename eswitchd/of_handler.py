@@ -16,7 +16,7 @@
 # limitations under the License.
 
 import logging
-from oslo.config import cfg
+from oslo_config import cfg
 from common import config
 from utils.command_utils import execute,execute_bg
 from utils import pci_utils

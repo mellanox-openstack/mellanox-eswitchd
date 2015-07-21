@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 
 LOG_LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR')

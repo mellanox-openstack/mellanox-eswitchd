@@ -23,7 +23,7 @@ from acl_handler import EthtoolAclHandler
 from common.exceptions import MlxException
 from common import constants
 from common import config
-from oslo.config import cfg
+from oslo_config import cfg
 from db import eswitch_db
 from of_handler import OfHandler
 from resource_mngr import ResourceManager

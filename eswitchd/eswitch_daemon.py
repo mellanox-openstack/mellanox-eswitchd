@@ -19,7 +19,7 @@
 import json
 import sys
 import zmq
-from oslo.config import cfg
+from oslo_config import cfg
 import logging
 from common import config
 from eswitch_handler import eSwitchHandler

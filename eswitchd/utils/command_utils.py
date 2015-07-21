@@ -19,7 +19,7 @@ import os
 import shlex
 import subprocess
 import logging
-from oslo.config import cfg
+from oslo_config import cfg
 
 LOG = logging.getLogger('eswitchd')
 
