@@ -22,7 +22,8 @@ LINK_UP='1'
 
 VIF_TYPE_MLNX_DIRECT = 'mlnx_direct'
 VIF_TYPE_DIRECT = 'direct'
-VIF_TYPE_HOSTDEV = 'hostdev'
+VIF_TYPE_HOSTDEV = 'ib_hostdev'
+
 
 VPORT_STATE_ATTACHED = 'attached'
 VPORT_STATE_PENDING = 'pending'

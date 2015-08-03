@@ -151,63 +151,41 @@ class eSwitchHandler(object):
         LOG.debug("vnics are %s", vnics)
         return vnics
 
-    def create_port(self, fabric, vnic_type, device_id, vnic_mac, dev_name):
-        dev = None
+    def create_port(self, fabric, vnic_type, device_id, vnic_mac, pci_slot):
         eswitch = self._get_vswitch_for_fabric(fabric)
         if eswitch:
-            dev = eswitch.get_dev_for_vnic(vnic_mac)
-            if not dev:
-                try:
-                    dev = self.rm.allocate_device(fabric, vnic_type)
-                    if eswitch.attach_vnic(dev, device_id, vnic_mac, dev_name):
-                        pf, vf_index = self._get_device_pf_vf(fabric, vnic_type, dev)
-                        if vnic_type == constants.VIF_TYPE_HOSTDEV:
-                            self._config_vf_mac_address(fabric, dev, vf_index, vnic_mac)
-                        else:
-                            self._set_devname(dev_name, dev)
-                        acl_rules = eswitch.get_acls_for_vnic(vnic_mac)
-                        self.acl_handler.set_acl_rules(pf, acl_rules)
-                    else:
-                        raise MlxException('Failed to attach vnic')
-                except (RuntimeError, MlxException):
-                    LOG.error('Create port operation failed ')
-                    self.rm.deallocate_device(fabric, vnic_type, dev)
-                    dev = None
+            try:
+                if eswitch.attach_vnic(pci_slot, device_id, vnic_mac, pci_slot):
+                    pf, vf_index = self._get_device_pf_vf(fabric, vnic_type, pci_slot)
+                    self._config_vf_mac_address(fabric, pci_slot, vf_index, vnic_mac)
+                else:
+                    raise MlxException('Failed to attach vnic')
+            except (RuntimeError, MlxException):
+                LOG.error('Create port operation failed ')
+                self.rm.deallocate_device(fabric, vnic_type, pci_slot)
+                pci_slot = None
         else:
             LOG.error("No eSwitch found for Fabric %s", fabric)
 
-        return dev
+        return pci_slot
 
-    def plug_nic(self, fabric, device_id, vnic_mac):
-        dev = None
+    def plug_nic(self, fabric, device_id, vnic_mac, pci_slot):
         eswitch = self._get_vswitch_for_fabric(fabric)
         if eswitch:
-            dev = eswitch.get_dev_for_vnic(vnic_mac)
-            if not dev:
-                #check for port_table entry with device_id and INVALID_MAC
-                for key, data in eswitch.port_table.items():
-                    if data['device_id'] == device_id and data['vnic'] == constants.INVALID_MAC:
-                        dev = key
-                        break
-                else:
-                    LOG.error("Plug NIC: Didn't find dev for MAC:%s and device_id:%s" % (data['vnic'], device_id))
-                if dev:
-                    eswitch.port_table[dev]['vnic'] = vnic_mac
-                    eswitch.port_policy.update({vnic_mac: {'vlan': None,
-                                                        'dev': dev,
-                                                        'device_id': device_id,
-                                                        'flow_ids': set([]),
-                                                        'priority': 0,
-                                                        }})
-                    pf, vf_index = self._get_device_pf_vf(fabric, constants.VIF_TYPE_HOSTDEV, dev)
-                    self._config_vf_mac_address(fabric, dev, vf_index, vnic_mac)
-                else:
-                    return None
-            eswitch.plug_nic(dev)
+            eswitch.port_table[pci_slot]['vnic'] = vnic_mac
+            eswitch.port_policy.update({vnic_mac: {'vlan': None,
+                                                'dev': pci_slot,
+                                                'device_id': device_id,
+                                                'flow_ids': set([]),
+                                                'priority': 0,
+                                                }})
+            pf, vf_index = self._get_device_pf_vf(fabric, constants.VIF_TYPE_HOSTDEV, pci_slot)
+            self._config_vf_mac_address(fabric, pci_slot, vf_index, vnic_mac)
+            eswitch.plug_nic(pci_slot)
         else:
             LOG.error("No eSwitch found for Fabric %s", fabric)
 
-        return dev
+        return pci_slot
 
     def delete_port(self, fabric, vnic_mac):
         """
@@ -216,7 +194,6 @@ class eSwitchHandler(object):
         dev = None
         eswitch = self._get_vswitch_for_fabric(fabric)
         if eswitch:
-            dev_name = eswitch.get_dev_alias_for_vnic(vnic_mac)
             dev = eswitch.detach_vnic(vnic_mac)
             if dev:
                 dev_type = eswitch.get_dev_type(dev)
@@ -224,9 +201,6 @@ class eSwitchHandler(object):
                     pf, vf_index = self._get_device_pf_vf(fabric, dev_type, dev)
                     #unset MAC to default value
                     self._config_vf_mac_address(fabric, dev, vf_index, DEFAULT_MAC_ADDRESS)
-                if dev_name:
-                    self._set_devname(dev, dev_name)
-                self.rm.deallocate_device(fabric, dev_type, dev)
         else:
             LOG.warning("No eSwitch found for Fabric %s", fabric)
         return dev

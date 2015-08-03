@@ -93,7 +93,7 @@ class PlugVnic(BasicMessageHandler):
             dev = eSwitchHandler.create_port(fabric, vnic_type,
                                              device_id, vnic_mac,
                                              dev_name)
-        dev = eSwitchHandler.plug_nic(fabric, device_id, vnic_mac)
+        dev = eSwitchHandler.plug_nic(fabric, device_id, vnic_mac, dev_name)
         if dev:
             return self.build_response(True, response= {'dev':dev})
         else:

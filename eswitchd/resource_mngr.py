@@ -20,21 +20,21 @@ import glob
 import libvirt
 from lxml import etree
 import os
-#from nova.openstack.common import log as logging
 import logging
 from utils.pci_utils import pciUtils
 from db import device_db
+from common import constants
 from common.exceptions import MlxException
 
 LOG = logging.getLogger('eswitchd')
 
 NET_PATH = "/sys/class/net/"
 
-class ResourceManager:    
+class ResourceManager:
     def __init__(self):
         self.pci_utils = pciUtils()
         self.device_db = device_db.DeviceDB()
-                  
+
     def add_fabric(self, fabric, pf, fabric_type):
         pci_id, hca_port, pf_mlx_dev = self._get_pf_details(pf)
         self.device_db.add_fabric(fabric, pf, pci_id, hca_port, fabric_type, pf_mlx_dev)
@@ -42,10 +42,10 @@ class ResourceManager:
         if fabric_type == 'ib':
             eths = []
         LOG.debug("PF %s, eths=%s, vfs=%s" % (pf, eths, vfs))
-        self.device_db.set_fabric_devices(fabric,eths,vfs)  
-    
+        self.device_db.set_fabric_devices(fabric,eths,vfs)
+
     def scan_attached_devices(self):
-        devices = {'direct':[],'hostdev':[]}
+        devices = {constants.VIF_TYPE_DIRECT:[], constants.VIF_TYPE_HOSTDEV:[]}
         vm_ids = {}
         conn = libvirt.openReadOnly('qemu:///system')
         domains = []
@@ -61,7 +61,7 @@ class ResourceManager:
                          libvirt.VIR_DOMAIN_SHUTOFF):
                 domains.append(domain)
         domains += running_domains
-        
+
         for domain in domains:
             raw_xml = domain.XMLDesc(0)
             tree = etree.XML(raw_xml)
@@ -72,7 +72,7 @@ class ResourceManager:
                 devices['direct'].append(dev)
                 vm_ids[dev[0]] = vm_id
             for dev in self._get_attached_hostdevs(hostdevs):
-                devices['hostdev'].append(dev)
+                devices[constants.VIF_TYPE_HOSTDEV].append(dev)
                 vm_ids[dev[0]] = vm_id
         return devices, vm_ids
 
@@ -82,13 +82,13 @@ class ResourceManager:
     def get_fabric_details(self, fabric):
         return self.device_db.get_fabric_details(fabric)
 
-    def discover_devices(self,pf,hca_port): 
+    def discover_devices(self,pf,hca_port):
         '''
         @return: tuple of lists ETH devices (like eth4) and Virtual Functions (like 0000:04:00.7 domain:bus:slot.function)
         '''
         eths = list()
-        vfs = list()    
-        vfs_paths = glob.glob(NET_PATH + pf + "/device/virtfn*") 
+        vfs = list()
+        vfs_paths = glob.glob(NET_PATH + pf + "/device/virtfn*")
         for vf_path in vfs_paths:
             path = vf_path+'/net'
             if os.path.isdir(path):
