@@ -16,7 +16,7 @@
 # limitations under the License.
 
 import json
-from oslo.config import cfg
+from oslo_config import cfg
 import zmq
 from eswitchd.cli import exceptions
 from eswitchd.common import config, constants
