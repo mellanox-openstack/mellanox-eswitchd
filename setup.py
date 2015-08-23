@@ -13,40 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# THIS FILE IS MANAGED BY THE GLOBAL REQUIREMENTS REPO - DO NOT EDIT
 import setuptools
 
-Name = 'eswitchd'
-Url = ""
-Version = '1.0.0'
-License = 'Apache License 2.0'
-Author = 'Mellanox'
-AuthorEmail = 'openstack@mellanox.com'
-Maintainer = ''
-Summary = 'Mellanox eswtich Daemon'
-ShortDescription = Summary
-Description = Summary
-
-DataFiles = [
-]
+# In python < 2.7.4, a lazy loading of package `pbr` will break
+# setuptools if some other modules registered functions in `atexit`.
+# solution from: http://bugs.python.org/issue15881#msg170215
+try:
+    import multiprocessing  # noqa
+except ImportError:
+    pass
 
 setuptools.setup(
-    name=Name,
-    version=Version,
-    url=Url,
-    author=Author,
-    author_email=AuthorEmail,
-    description=ShortDescription,
-    long_description=Description,
-    license=License,
-    include_package_data=False,
-    install_requires=["oslo.config","pyzmq"],
-    packages=setuptools.find_packages('.'),
-    data_files=DataFiles,
-    entry_points={
-        'console_scripts': [
-            'eswitchd = eswitchd.eswitch_daemon:main',
-            'ebrctl = eswitchd.cli.ebrctl:main',
-            'eswitch-rootwrap = eswitchd.rootwrap.cmd:main'
-        ]
-    },
-)
+    setup_requires=['pbr>=1.3'],
+    pbr=True)

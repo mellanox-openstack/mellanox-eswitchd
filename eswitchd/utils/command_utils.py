@@ -24,7 +24,7 @@ from oslo_config import cfg
 LOG = logging.getLogger('eswitchd')
 
 def get_root_helper():
-    root_helper =  'sudo eswitch-rootwrap %s' % cfg.CONF.DAEMON.rootwrap_conf
+    root_helper =  'sudo eswitchd-rootwrap %s' % cfg.CONF.DAEMON.rootwrap_conf
     return root_helper
 
 def execute(cmd, root_helper=None, process_input=None, addl_env=None,
