@@ -57,8 +57,3 @@ class TestPciUtils(base.TestCase):
         log_msg = "Found multiple PFs %s. Configure Manually." % devices
         with self._test_get_auto_pf(devices=devices):
             self._assert_get_auto_pf_error(log_msg)
-
-    def test_get_auto_pf_correct_flow(self):
-        with self._test_get_auto_pf(devices=['device-1']):
-            ifc = self.pci_utils.get_auto_pf('fabtype')
-            self.assertEqual(ifc, 'device-1')

@@ -73,35 +73,23 @@ class MlxEswitchDaemon(object):
 
     def _init_connections(self):
         context = zmq.Context()
-        self.socket_of  = context.socket(zmq.REP)
         self.socket_os = context.socket(zmq.REP)
-        of_transport = cfg.CONF.DAEMON.socket_of_transport
-        of_port = cfg.CONF.DAEMON.socket_of_port
-        of_addr = cfg.CONF.DAEMON.socket_of_addr
         os_transport = cfg.CONF.DAEMON.socket_os_transport
         os_port = cfg.CONF.DAEMON.socket_os_port
         os_addr = cfg.CONF.DAEMON.socket_os_addr
-        self.conn_of_url = set_conn_url(of_transport, of_addr, of_port)
         self.conn_os_url = set_conn_url(os_transport, os_addr, os_port)
 
-        self.socket_of.bind(self.conn_of_url)
         self.socket_os.bind(self.conn_os_url)
         self.poller = zmq.Poller()
-        self.poller.register(self.socket_of, zmq.POLLIN)
         self.poller.register(self.socket_os, zmq.POLLIN)
 
     def _handle_msg(self):
         data = None
-        conn = dict(self.poller.poll(self.default_timeout))
-        if conn:
-            if conn.get(self.socket_of) == zmq.POLLIN:
-                msg = self.socket_of.recv()
-                sender = self.socket_of
-            elif conn.get(self.socket_os) == zmq.POLLIN:
-                msg = self.socket_os.recv()
-                sender = self.socket_os
-            if msg:
-                data = json.loads(msg)
+
+        msg = self.socket_os.recv()
+        sender = self.socket_os
+        if msg:
+            data = json.loads(msg)
 
         if data:
             result = self.dispatcher.handle_msg(data)

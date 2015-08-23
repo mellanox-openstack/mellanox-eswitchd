@@ -35,11 +35,8 @@ default_opts = [cfg.StrOpt('log_file',
 DEFAULT_INTERFACE_MAPPINGS = []
 mlx_daemon_opts = [
                     cfg.StrOpt('socket_os_transport', default="tcp"),
-                    cfg.StrOpt('socket_of_transport', default="tcp"),
                     cfg.StrOpt('socket_os_port', default="60001"),
-                    cfg.StrOpt('socket_of_port', default="60000"),
                     cfg.StrOpt('socket_os_addr', default="0.0.0.0"),
-                    cfg.StrOpt('socket_of_addr', default="0.0.0.0"),
                     cfg.ListOpt('fabrics',
                                 default=DEFAULT_INTERFACE_MAPPINGS,
                                 help=("List of <physical_network>:<physical_interface>")),
@@ -59,13 +56,7 @@ eswitch_opts = [
                 help=("List of <physical_network>:<physical_interface>"))
 ]
 
-of_agent_opts = [
-    cfg.BoolOpt('start_of_agent', default="no"),
-    cfg.ListOpt('of_agent_mappings',
-                #default=['mlx1:127.0.0.1:0002c9397000'],
-                help=("List of <fabric>:<controller_ip>:<dpid>"))
-]
+
 cfg.CONF.register_opts(default_opts, "DEFAULT")
 cfg.CONF.register_opts(mlx_daemon_opts, "DAEMON")
 cfg.CONF.register_opts(eswitch_opts, "ESWITCH")
-cfg.CONF.register_opts(of_agent_opts, "OF")

@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#from nova.openstack.common import log as logging
 import logging
 from common import constants
 from db.eswitch_db import eSwitchDB
@@ -225,71 +224,6 @@ class PortDown(BasicMessageHandler):
         mac   = self.msg['mac']
         return self.build_response(True, response = {})
 
-class SetAclRule(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric', 'port_mac', 'flow_id',
-                               'acl_action'])
-
-    MSG_ATTRS_ALLOWED_MAP = set(['fabric', 'port_mac', 'flow_id','priority',
-                                 'src_mac', 'dst-mac', 'src_ipv4', 'tcp_src_port',
-                                 'tcp_dst_port','dst_ipv4', 'udp_src_port',
-                                 'udp_dst_port', 'acl_action','ip_protocol'])
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
-
-    def execute(self, eSwitchHandler):
-        fabric = self.msg.pop('fabric')
-        mac    = self.msg['port_mac'].lower()
-        ret = eSwitchHandler.set_acl_rule(fabric, mac, self.msg)
-
-        if not ret:
-            reason = 'Set ACL Rule Failed'
-            self.build_response(False, reason=reason)
-        return self.build_response(True, response = {})
-
-    def validate(self):
-        ret = False
-        if super(SetAclRule, self).validate():
-            if set(self.msg.keys()) <= set(self.MSG_ATTRS_ALLOWED_MAP):
-                if 'acl_action' in self.msg.keys():
-                    ret = self.validate_acl_action(self.msg['acl_action'])
-        return ret
-
-    def validate_acl_action(self, acl_action):
-        if acl_action in constants.ACL_ACTIONS:
-            return True
-        return False
-
-class DeleteAclRule(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric', 'flow_id'])
-
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
-
-    def execute(self, eSwitchHandler):
-        fabric = self.msg['fabric']
-        flow_id = self.msg['flow_id']
-        ret = eSwitchHandler.delete_acl_rule(fabric, flow_id)
-
-        reason = None
-        if not ret:
-            reason ='Delete ACL Failed'
-        if reason:
-            return self.build_response(False, reason=reason)
-        return self.build_response(True, response = {})
-
-class UpdateFlowId(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric', 'old_flow_id', 'new_flow_id'])
-
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
-
-    def execute(self, eSwitchHandler):
-        fabric = self.msg['fabric']
-        old_flow_id = self.msg['old_flow_id']
-        new_flow_id = self.msg['new_flow_id']
-        ret = eSwitchHandler.update_flow_id(fabric, old_flow_id, new_flow_id)
-        return self.build_response(ret, response = {})
-
 class GetEswitchTables(BasicMessageHandler):
     MSG_ATTRS_MANDATORY_MAP = set(['fabric'])
 
@@ -317,9 +251,6 @@ class MessageDispatch(object):
                'port_down': PortDown,
                'define_fabric_mapping': SetFabricMapping,
                'plug_nic': PlugVnic,
-               'acl_set': SetAclRule,
-               'acl_delete': DeleteAclRule,
-               'flow_id_update': UpdateFlowId,
                'set_priority': SetPriority,
                'get_eswitch_tables': GetEswitchTables,
                }
@@ -352,11 +283,9 @@ def main():
            'src_ipv4': '10.20.30.50',
             'fabric': 'mlx1',
             'dst_ipv4': '11.22.33.44',
-            'acl_action': 'forward',
             'port_mac': mac,
             'priority': '32768',
             'udp_src_port': '100',
-            'flow_id': 2.0,
             'action': 'acl_set',
             'udp_dst_port': '400',
             'ip_protocol':17}

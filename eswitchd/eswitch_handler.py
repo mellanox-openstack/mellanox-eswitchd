@@ -15,17 +15,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#from nova.openstack.common import log as logging
+
 import glob
 import logging
 import sys
-from acl_handler import EthtoolAclHandler
 from common.exceptions import MlxException
 from common import constants
 from common import config
 from oslo_config import cfg
 from db import eswitch_db
-from of_handler import OfHandler
 from resource_mngr import ResourceManager
 from utils import pci_utils
 from utils.command_utils import execute
@@ -44,7 +42,6 @@ ACL_REF = 0
 
 class eSwitchHandler(object):
     def __init__(self, fabrics=None):
-        self.acl_handler = EthtoolAclHandler()
         self.eswitches = {}
         self.pci_utils = pci_utils.pciUtils()
         self.rm = ResourceManager()
@@ -52,8 +49,6 @@ class eSwitchHandler(object):
                         constants.VIF_TYPE_DIRECT: set(),
                         constants.VIF_TYPE_HOSTDEV: set()
         }
-        if cfg.CONF.OF.start_of_agent:
-            self.of_handler = OfHandler()
         if fabrics:
             self.add_fabrics(fabrics)
 
@@ -176,7 +171,6 @@ class eSwitchHandler(object):
             eswitch.port_policy.update({vnic_mac: {'vlan': None,
                                                 'dev': pci_slot,
                                                 'device_id': device_id,
-                                                'flow_ids': set([]),
                                                 'priority': 0,
                                                 }})
             pf, vf_index = self._get_device_pf_vf(fabric, constants.VIF_TYPE_HOSTDEV, pci_slot)
@@ -264,43 +258,6 @@ class eSwitchHandler(object):
             vlan = eswitch.set_priority(vnic_mac, priority)
             if vlan:
                 ret = self.set_vlan(fabric, vnic_mac, vlan)
-        return ret
-
-    def set_acl_rule(self, fabric, vnic_mac, params):
-        eswitch = self._get_vswitch_for_fabric(fabric)
-        if eswitch:
-            pf = self.rm.get_fabric_pf(fabric)
-            flow_id, acl_rule = self.acl_handler.build_acl_rule(params)
-            if acl_rule:
-                eswitch.set_acl_rule(vnic_mac, acl_rule, flow_id)
-                vnic_state = eswitch.get_vnic_state(vnic_mac)
-                if vnic_state in (constants.VPORT_STATE_ATTACHED, constants.VPORT_STATE_PENDING):
-                    try:
-                        acl_ref = self.acl_handler.set_acl_rule(pf, acl_rule)
-                        eswitch.update_acl_rule_ref(flow_id, acl_ref)
-                        return True
-                    except RuntimeError:
-                        LOG.error('Failed to set ACL rule flow_id-%s', flow_id)
-        return False
-
-    def delete_acl_rule(self, fabric, flow_id):
-        eswitch = self._get_vswitch_for_fabric(fabric)
-        if eswitch:
-            pf = self.rm.get_fabric_pf(fabric)
-            (ref, vnic_mac) = eswitch.del_acl_rule(flow_id)
-            if ref:
-                try:
-                    self.acl_handler.del_acl_rule(pf, ref)
-                    return True
-                except RuntimeError:
-                    LOG.error('Failed to delete ACL flow_id-%s', flow_id)
-        return False
-
-    def update_flow_id(self, fabric, old_flow_id, new_flow_id):
-        ret = False
-        eswitch = self._get_vswitch_for_fabric(fabric)
-        if eswitch:
-            ret = eswitch.update_flow_id(old_flow_id, new_flow_id)
         return ret
 
     def get_eswitch_tables(self, fabrics):

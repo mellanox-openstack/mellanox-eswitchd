@@ -87,6 +87,4 @@ class DeviceDB():
             return dev          
         else:
             return None
-        
- 
-        
+

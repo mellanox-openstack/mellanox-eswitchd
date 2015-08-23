@@ -26,7 +26,6 @@ class eSwitchDB():
         def __init__(self):
             self.port_table  = {}
             self.port_policy = {}
-            self.acl_table = {}
                            
         def create_port(self, port_name, port_type):
             self.port_table.update({port_name: {'type': port_type,
@@ -95,8 +94,7 @@ class eSwitchDB():
                 self.port_policy.update({vnic_mac: {'vlan':None,'dev':None,
                                                     'device_id':None,
                                                     'port_id':None,
-                                                    'priority':None,
-                                                    'flow_ids':set([])}})
+                                                    'priority':None}})
             
         def get_dev_type(self, dev):
             dev_type = None
@@ -148,7 +146,6 @@ class eSwitchDB():
             else:
                 return False
 
-            
         def attach_vnic(self,port_name, device_id, vnic_mac,dev_name = None):
             self.port_table[port_name]['vnic'] = vnic_mac
             self.port_table[port_name]['alias'] = dev_name
@@ -162,12 +159,10 @@ class eSwitchDB():
                     vnic_mac_entry['device_id'] = device_id
                     vnic_mac_entry.setdefault('vlan', None)
                     vnic_mac_entry.setdefault('priority', 0)
-                    vnic_mac_entry.setdefault('flow_ids', set([]))
                 else:    
                     self.port_policy.update({vnic_mac: {'vlan':None,
                                                         'dev':port_name,
                                                         'device_id':device_id,
-                                                        'flow_ids':set([]),
                                                         'priority': 0,
                                                         }})
                 return True
@@ -204,41 +199,4 @@ class eSwitchDB():
             if not self.vnic_exists(vnic_mac):
                 self.create_vnic(vnic_mac)
 
-            self.port_policy[vnic_mac]['priority'] = priority            
-            
-        def set_acl_rule(self, vnic_mac, acl_rule, flow_id):
-            if not self.vnic_exists(vnic_mac):
-                self.create_vnic(vnic_mac)
-            self.acl_table[flow_id] = {'vnic_mac':vnic_mac, 'acl_rule':acl_rule, 'loc':flow_id}
-            self.port_policy[vnic_mac]['flow_ids'].add(flow_id)
-             
-        def update_acl_rule_ref(self, flow_id,acl_ref):
-            self.acl_table[flow_id]['loc'] = acl_ref
-            
-        def del_acl_rule(self, flow_id):        
-            if flow_id in self.acl_table:
-                vnic_mac = self.acl_table[flow_id]['vnic_mac']
-                loc      = self.acl_table[flow_id]['loc']
-                self.port_policy[vnic_mac]['flow_ids'].remove(flow_id)
-                del self.acl_table[flow_id]
-                return (loc, vnic_mac)
-            else:  
-                return (constants.FLOW_ID_NOT_EXISTS, None)
-             
-        def update_flow_id(self, old_flow_id, new_flow_id):
-            if old_flow_id in self.acl_table:
-                self.acl_table[new_flow_id] = self.acl_table[old_flow_id].copy()
-                del self.acl_table[old_flow_id]
-                vnic_mac = self.acl_table[new_flow_id]['vnic_mac']
-                self.port_policy[vnic_mac]['flow_ids'].remove(old_flow_id)
-                self.port_policy[vnic_mac]['flow_ids'].add(new_flow_id)
-                
-        def get_acls_for_vnic(self, vnic_mac):
-            acls = []
-            if self.vnic_exists(vnic_mac):
-                flow_ids = self.port_policy[vnic_mac]['flow_ids']
-                for flow_id in flow_ids:
-                    acl_rule = self.acl_table[flow_id]['acl_rule']
-                    ref      = self.acl_table[flow_id]['loc']
-                    acls.append([acl_rule, ref])
-            return acls                                    
+            self.port_policy[vnic_mac]['priority'] = priority
