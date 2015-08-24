@@ -169,7 +169,6 @@ class eSwitchHandler(object):
             eswitch.port_policy.update({vnic_mac: {'vlan': None,
                                                 'dev': pci_slot,
                                                 'device_id': device_id,
-                                                'priority': 0,
                                                 }})
             pf, vf_index = self._get_device_pf_vf(fabric, constants.VIF_TYPE_HOSTDEV, pci_slot)
             self._config_vf_mac_address(fabric, pci_slot, vf_index, vnic_mac)
@@ -230,7 +229,6 @@ class eSwitchHandler(object):
             state = eswitch.get_port_state(dev)
             if dev:
                 if state in (constants.VPORT_STATE_ATTACHED, constants.VPORT_STATE_UNPLUGGED):
-                    priority = eswitch.get_priority(vnic_mac)
                     vnic_type = eswitch.get_port_type(dev)
                     if eswitch.get_port_table()[dev]['alias']:
                         dev = eswitch.get_port_table()[dev]['alias']
@@ -238,25 +236,13 @@ class eSwitchHandler(object):
                     pf, vf_index = self._get_device_pf_vf(fabric, vnic_type, dev)
                     if pf and vf_index is not None:
                         try:
-                            if vnic_type == constants.VIF_TYPE_DIRECT:
-                                self._config_vlan_priority_direct(pf, vf_index, dev, vlan, priority)
-                            else:
-                                self._config_vlan_priority_hostdev(fabric, pf,  vf_index, dev, vlan, priority)
+                            self._config_vlan_hostdev(fabric, pf,  vf_index, dev, vlan)
                             return True
                         except RuntimeError:
                             LOG.error('Set VLAN operation failed')
                     else:
                         LOG.error('Invalid VF/PF index for device %s,PF-%s,VF Index - %s', dev, pf, vf_index)
         return False
-
-    def set_priority(self, fabric, vnic_mac, priority):
-        ret = False
-        eswitch = self._get_vswitch_for_fabric(fabric)
-        if eswitch:
-            vlan = eswitch.set_priority(vnic_mac, priority)
-            if vlan:
-                ret = self.set_vlan(fabric, vnic_mac, vlan)
-        return ret
 
     def get_eswitch_tables(self, fabrics):
         tables = {}
@@ -324,20 +310,10 @@ class eSwitchHandler(object):
             cmd = ['ip', 'link', 'set', pf, 'vf', vf_index, 'mac', vnic_mac]
             execute(cmd, root_helper=None)
 
-    def _config_vlan_priority_direct(self, pf, vf_index, dev, vlan, priority='0'):
-        self._config_port_down(dev)
-        cmd = ['ip', 'link', 'set', pf, 'vf', vf_index, 'vlan', vlan, 'qos', priority]
-        execute(cmd, root_helper=None)
-        self._config_port_up(dev)
-
-    def _config_vlan_priority_hostdev(self, fabric, pf, vf_index, dev, vlan, priority='0'):
+    def _config_vlan_hostdev(self, fabric, pf, vf_index, dev, vlan):
         fabric_details = self.rm.get_fabric_details(fabric)
         fabric_type = fabric_details['fabric_type']
-        if fabric_type == 'ib':
-            self._config_vlan_ib(vlan, fabric_details, dev, vf_index)
-        else:
-            cmd = ['ip', 'link', 'set', pf, 'vf', vf_index, 'vlan', vlan, 'qos', priority]
-            execute(cmd, root_helper=None)
+        self._config_vlan_ib(vlan, fabric_details, dev, vf_index)
 
     def _config_vlan_ib(self, vlan, fabric_details, dev, vf_index):
         hca_port = fabric_details['hca_port']

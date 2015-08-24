@@ -129,22 +129,6 @@ class SetVLAN(BasicMessageHandler):
             return self.build_response(False, reason=reason)
         return self.build_response(True, response = {})
 
-class SetPriority(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric','port_mac','priority'])
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
-
-    def execute(self, eSwitchHandler):
-        fabric     = self.msg['fabric']
-        vnic_mac   = (self.msg['port_mac']).lower()
-        priority   = self.msg['priority']
-        ret = eSwitchHandler.set_priority(fabric, vnic_mac, priority)
-        reason = None
-        if not ret:
-            reason ='Set Priority Failed'
-        if reason:
-            return self.build_response(False, reason=reason)
-        return self.build_response(True, response = {})
 
 class GetVnics(BasicMessageHandler):
     MSG_ATTRS_MANDATORY_MAP = set(['fabric'])
@@ -251,7 +235,6 @@ class MessageDispatch(object):
                'port_down': PortDown,
                'define_fabric_mapping': SetFabricMapping,
                'plug_nic': PlugVnic,
-               'set_priority': SetPriority,
                'get_eswitch_tables': GetEswitchTables,
                }
     def __init__(self,eSwitchHandler):
@@ -284,7 +267,6 @@ def main():
             'fabric': 'mlx1',
             'dst_ipv4': '11.22.33.44',
             'port_mac': mac,
-            'priority': '32768',
             'udp_src_port': '100',
             'action': 'acl_set',
             'udp_dst_port': '400',

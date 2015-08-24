@@ -65,9 +65,9 @@ class eSwitchDB():
             return self.port_policy
         
         def get_port_policy_matrix(self):
-            table_matrix = [ ['VNIC_MAC','VLAN','PRIORITY','DEV','DEVICE_ID']]
+            table_matrix = [ ['VNIC_MAC','VLAN','DEV','DEVICE_ID']]
             for vnic_mac, port_policy in self.port_policy.items():
-                table_matrix.append([vnic_mac,port_policy['vlan'], port_policy['priority'], port_policy['dev'],port_policy['device_id']])
+                table_matrix.append([vnic_mac,port_policy['vlan'], port_policy['dev'],port_policy['device_id']])
             return table_matrix
         
         def get_port_table(self):
@@ -84,17 +84,11 @@ class eSwitchDB():
                 return self.port_policy[vnic_mac]['vlan']
             return
         
-        def get_priority(self, vnic_mac):
-            if self.vnic_exists(vnic_mac):
-                return self.port_policy[vnic_mac]['priority']
-            return
-        
         def create_vnic(self, vnic_mac):
             if not self.vnic_exists(vnic_mac):
                 self.port_policy.update({vnic_mac: {'vlan':None,'dev':None,
                                                     'device_id':None,
-                                                    'port_id':None,
-                                                    'priority':None}})
+                                                    'port_id':None}})
             
         def get_dev_type(self, dev):
             dev_type = None
@@ -158,12 +152,10 @@ class eSwitchDB():
                     vnic_mac_entry['dev'] = port_name 
                     vnic_mac_entry['device_id'] = device_id
                     vnic_mac_entry.setdefault('vlan', None)
-                    vnic_mac_entry.setdefault('priority', 0)
                 else:    
                     self.port_policy.update({vnic_mac: {'vlan':None,
                                                         'dev':port_name,
                                                         'device_id':device_id,
-                                                        'priority': 0,
                                                         }})
                 return True
             return False
@@ -194,9 +186,3 @@ class eSwitchDB():
                 self.create_vnic(vnic_mac)
 
             self.port_policy[vnic_mac]['vlan']=vlan
-            
-        def set_priority(self, vnic_mac, priority):
-            if not self.vnic_exists(vnic_mac):
-                self.create_vnic(vnic_mac)
-
-            self.port_policy[vnic_mac]['priority'] = priority
