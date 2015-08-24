@@ -86,12 +86,6 @@ class PlugVnic(BasicMessageHandler):
         vnic_type = self.msg['vnic_type']
         dev_name = self.msg['dev_name']
 
-        if vnic_type == constants.VIF_TYPE_MLNX_DIRECT:
-            vnic_type = constants.VIF_TYPE_DIRECT
-        if vnic_type == constants.VIF_TYPE_DIRECT:
-            dev = eSwitchHandler.create_port(fabric, vnic_type,
-                                             device_id, vnic_mac,
-                                             dev_name)
         dev = eSwitchHandler.plug_nic(fabric, device_id, vnic_mac, dev_name)
         if dev:
             return self.build_response(True, response= {'dev':dev})

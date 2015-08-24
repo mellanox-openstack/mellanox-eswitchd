@@ -71,9 +71,6 @@ def allocate_port(args):
 
 def add_port(args):
     try:
-        if args.vnic_type in (constants.VIF_TYPE_DIRECT,
-                              constants.VIF_TYPE_MLNX_DIRECT):
-            args.vnic_type = constants.VIF_TYPE_DIRECT
         dev = client.plug_nic(args.vnic_mac, args.device_id, args.fabric,
                               args.vnic_type, args.dev_name)
 

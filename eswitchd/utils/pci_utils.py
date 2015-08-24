@@ -157,18 +157,17 @@ class pciUtils:
             if pci_id == id:
                 return path.split('/')[-1]
 
-    def get_vf_index(self, dev, dev_type):
-        """
-        @param dev: Ethernet device or VF
-        @param dev_type: 'direct' or 'hostdev'
-        @return: VF index
-        """
-        if dev_type == 'direct':
-            dev = self.get_eth_vf(dev)
+    def _get_guid_idx(self, pf_mlx_dev, dev, hca_port):
+        path = "/sys/class/infiniband/%s/iov/%s/ports/%s/gid_idx/0" % (pf_mlx_dev, dev, hca_port)
+        with open(path) as fd:
+            idx = fd.readline().strip()
+        return idx
+
+    def get_vf_index(self,  pf_mlx_dev, dev, hca_port):
+        vf_index = None
         if dev:
-            vf_index = self._calc_vf_index(dev)
-            return vf_index
-        return None
+            vf_index = guid_idx = self._get_guid_idx(pf_mlx_dev, dev, hca_port)
+        return vf_index
 
     def get_eth_port(self, dev):
         port_path = pciUtils.ETH_PORT.replace("ETH", dev)
@@ -209,7 +208,7 @@ class pciUtils:
                     head = guid[:6]
                     tail = guid[-6:]
                     mac = ":".join(re.findall('..?', head + tail))
-                macs_map[str(int(vf_index)-1)] = mac
+                macs_map[str(int(vf_index))] = mac
         return macs_map
 
     def get_device_address(self, hostdev):
@@ -219,19 +218,3 @@ class pciUtils:
         function = hostdev.attrib['function'][2:]
         dev = "%.4s:%.2s:%2s.%.1s" %(domain,bus,slot,function)
         return dev
-
-    def _calc_vf_index(self, dev):
-        vf_address = re.split(r"\.|\:", dev)
-        vf_index = int(vf_address[2]) * 8 + int(vf_address[3]) - 1
-        return vf_index
-
-    def set_vf_binding(self, vf, is_bind=False):
-        if is_bind:
-            cmd = ["echo", vf, ">",pciUtils.VF_BIND_PATH]
-        else:
-            cmd = ["echo", vf, ">",pciUtils.VF_UNBIND_PATH]
-        try:
-            result = execute(cmd, root_helper=None)
-        except Exception,e:
-            LOG.warning("Failed to execute command %s due to %s",cmd,e)
-            raise
