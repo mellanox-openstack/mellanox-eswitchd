@@ -15,12 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
+from oslo_log import log as logging
 from common import constants
 from db.eswitch_db import eSwitchDB
 from eswitch_handler import eSwitchHandler
 
-LOG = logging.getLogger('eswitchd')
+LOG = logging.getLogger(__name__)
 
 
 class BasicMessageHandler(object):
@@ -155,7 +155,7 @@ class GetVnics(BasicMessageHandler):
         fabric   = self.msg['fabric']
         if fabric == '*':
             fabrics = eSwitchHandler.eswitches.keys()
-            LOG.debug("fabrics =%s",fabrics)
+            LOG.info("fabrics =%s",fabrics)
         else:
             fabrics = [fabric]
         vnics = eSwitchHandler.get_vnics(fabrics)
@@ -234,7 +234,7 @@ class GetEswitchTables(BasicMessageHandler):
         fabric = self.msg.get('fabric', '*')
         if fabric == '*':
             fabrics = eSwitchHandler.eswitches.keys()
-            LOG.debug("fabrics =%s",fabrics)
+            LOG.info("fabrics =%s",fabrics)
         else:
             fabrics = [fabric]
 
@@ -258,7 +258,7 @@ class MessageDispatch(object):
         self.eSwitchHandler = eSwitchHandler
 
     def handle_msg(self, msg):
-        LOG.debug("Handling message - %s",msg)
+        LOG.info("Handling message - %s",msg)
         result = {}
         action = msg.pop('action')
 

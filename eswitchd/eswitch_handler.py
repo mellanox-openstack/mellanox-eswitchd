@@ -17,7 +17,7 @@
 
 
 import glob
-import logging
+from oslo_log import log as logging
 import sys
 from common.exceptions import MlxException
 from common import constants
@@ -28,8 +28,9 @@ from resource_mngr import ResourceManager
 from utils import pci_utils
 from utils.command_utils import execute
 
+LOG = logging.getLogger(__name__)
+
 DEFAULT_MAC_ADDRESS = '00:00:00:00:00:01'
-LOG = logging.getLogger('eswitchd')
 INVALID_PKEY = 'none'
 DEFAULT_PKEY_IDX = '0'
 PARTIAL_PKEY_IDX = '1'
@@ -37,7 +38,6 @@ BASE_PKEY = '0x8000'
 PADDING = '0000'
 DEFAULT_MASK = 0x7fff
 DEFAULT_PKEY = '0xffff'
-ACL_REF = 0
 
 
 class eSwitchHandler(object):
@@ -74,11 +74,9 @@ class eSwitchHandler(object):
                 self._add_fabric(fabric, pf, fabric_type)
                 res_fabrics.append((fabric, pf, fabric_type))
             else:
-                LOG.debug("No fabric type for PF:%s.Terminating!" % pf)
+                LOG.info("No fabric type for PF:%s.Terminating!" % pf)
                 sys.exit(1)
         self.sync_devices()
-        if hasattr(self, 'of_handler'):
-            self.of_handler.add_fabrics(res_fabrics)
 
     def sync_devices(self):
         devices, vm_ids = self.rm.scan_attached_devices()
@@ -110,7 +108,7 @@ class eSwitchHandler(object):
                 if self.eswitches[fabric].vnic_exists(mac):
                     self.eswitches[fabric].plug_nic(port_name=dev)
             else:
-                LOG.debug("No Fabric defined for device %s", dev)
+                LOG.info("No Fabric defined for device %s", dev)
 
     def _treat_removed_devices(self, devices, dev_type):
         for dev, mac in devices:
@@ -119,7 +117,7 @@ class eSwitchHandler(object):
                 self.rm.deallocate_device(fabric, dev_type=dev_type, dev=dev)
                 self.eswitches[fabric].detach_vnic(vnic_mac=mac)
             else:
-                LOG.debug("No Fabric defined for device %s", dev)
+                LOG.info("No Fabric defined for device %s", dev)
 
 #-------------------------------------------------
 #  requests handling
@@ -143,7 +141,7 @@ class eSwitchHandler(object):
             else:
                 LOG.error("No eSwitch found for Fabric %s", fabric)
                 continue
-        LOG.debug("vnics are %s", vnics)
+        LOG.info("vnics are %s", vnics)
         return vnics
 
     def create_port(self, fabric, vnic_type, device_id, vnic_mac, pci_slot):
@@ -222,7 +220,7 @@ class eSwitchHandler(object):
                 vnic_type = eswitch.get_port_type(dev)
                 self._config_port_down(dev, vnic_type)
             else:
-                LOG.debug("No device for MAC %s", vnic_mac)
+                LOG.info("No device for MAC %s", vnic_mac)
 
     def set_vlan(self, fabric, vnic_mac, vlan):
         eswitch = self._get_vswitch_for_fabric(fabric)
@@ -268,7 +266,7 @@ class eSwitchHandler(object):
                 tables[fabric] = {'port_table': eswitch.get_port_table_matrix(),
                                   'port_policy': eswitch.get_port_policy_matrix()}
             else:
-                LOG.debug("Get eswitch tables: No eswitch %s" % fabric)
+                LOG.info("Get eswitch tables: No eswitch %s" % fabric)
         return tables
 
     def _get_vswitch_for_fabric(self, fabric):

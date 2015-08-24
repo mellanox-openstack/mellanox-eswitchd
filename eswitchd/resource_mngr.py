@@ -20,13 +20,13 @@ import glob
 import libvirt
 from lxml import etree
 import os
-import logging
+from oslo_log import log as logging
 from utils.pci_utils import pciUtils
 from db import device_db
 from common import constants
 from common.exceptions import MlxException
 
-LOG = logging.getLogger('eswitchd')
+LOG = logging.getLogger(__name__)
 
 NET_PATH = "/sys/class/net/"
 
@@ -41,7 +41,7 @@ class ResourceManager:
         eths,vfs = self.discover_devices(pf,hca_port)
         if fabric_type == 'ib':
             eths = []
-        LOG.debug("PF %s, eths=%s, vfs=%s" % (pf, eths, vfs))
+        LOG.info("PF %s, eths=%s, vfs=%s" % (pf, eths, vfs))
         self.device_db.set_fabric_devices(fabric,eths,vfs)
 
     def scan_attached_devices(self):
@@ -165,7 +165,7 @@ class ResourceManager:
                 except KeyError:
                     LOG.warning("Failed to retrieve Hostdev MAC for dev %s",dev)
             else:
-                LOG.debug("No Fabric defined for device %s",hostdev)
+                LOG.info("No Fabric defined for device %s",hostdev)
         return devs
     
     def _get_attached_interfaces(self, interfaces):
@@ -177,7 +177,7 @@ class ResourceManager:
             if fabric:
                 devs.append((dev,mac,fabric))
             else:
-                LOG.debug("No Fabric defined for device %s",dev)
+                LOG.info("No Fabric defined for device %s",dev)
         return devs
 
     def _get_pf_details(self,pf):

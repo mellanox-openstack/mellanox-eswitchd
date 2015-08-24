@@ -15,24 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+
 from oslo_config import cfg
+from oslo_log import log as logging
 
-
-LOG_LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR')
-default_opts = [cfg.StrOpt('log_file',
-                           default='/var/log/eswitchd/eswitchd.log',
-                           help='Full path to log file'),
-                cfg.StrOpt('log_level',
-                           choices=LOG_LEVELS,
-                           default='DEBUG',
-                           help='Valid values: %s' % str(LOG_LEVELS)),
-                cfg.StrOpt('log_format',
-                           default=('%(asctime)s %(levelname)s '
-                                    '%(name)s [-] %(message)s'),
-                           help=('logging format, as supported by the python '
-                                 'logging module.'))]
-
+LOG = logging.getLogger(__name__)
 DEFAULT_INTERFACE_MAPPINGS = []
+
 mlx_daemon_opts = [
                     cfg.StrOpt('socket_os_transport', default="tcp"),
                     cfg.StrOpt('socket_os_port', default="60001"),
@@ -51,12 +41,18 @@ mlx_daemon_opts = [
                                help=('eswitchd rootwrap configuration file'))
 ]
 
-eswitch_opts = [
-    cfg.ListOpt('physical_interface_mappings',
-                help=("List of <physical_network>:<physical_interface>"))
-]
 
-
-cfg.CONF.register_opts(default_opts, "DEFAULT")
 cfg.CONF.register_opts(mlx_daemon_opts, "DAEMON")
-cfg.CONF.register_opts(eswitch_opts, "ESWITCH")
+logging.register_options(cfg.CONF)
+
+def init(args, **kwargs):
+    cfg.CONF(args=args, project='eswitchd',
+             **kwargs)
+
+def setup_logging():
+    """Sets up the logging options for a log with supplied name."""
+    logging.setup(cfg.CONF, 'eswitchd')
+    LOG.info("Logging enabled!")
+    LOG.info("%(prog)s Started!",
+             {'prog': sys.argv[0]})
+    LOG.debug("command line: %s", " ".join(sys.argv))

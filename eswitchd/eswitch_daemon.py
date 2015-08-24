@@ -20,21 +20,14 @@ import json
 import sys
 import zmq
 from oslo_config import cfg
-import logging
+from oslo_log import log as logging
 from common import config
 from eswitch_handler import eSwitchHandler
 from utils.helper_utils import set_conn_url
 import msg_handler as message
 
 
-cfg.CONF(project='eswitchd')
-
-logging.basicConfig(filename=cfg.CONF.DEFAULT.log_file,
-                    filemode='w',
-                    format=cfg.CONF.DEFAULT.log_format,
-                    level=logging.getLevelName(cfg.CONF.DEFAULT.log_level))
-
-LOG = logging.getLogger('eswitchd')
+LOG = logging.getLogger(__name__)
 
 
 class MlxEswitchDaemon(object):
@@ -50,11 +43,7 @@ class MlxEswitchDaemon(object):
 
     def _parse_physical_mapping(self):
         fabrics = []
-        if cfg.CONF.ESWITCH.physical_interface_mappings:
-            fabrics_config = cfg.CONF.ESWITCH.physical_interface_mappings
-        else:
-            fabrics_config = cfg.CONF.DAEMON.fabrics
-
+        fabrics_config = cfg.CONF.DAEMON.fabrics
         for entry in fabrics_config:
             if ':' in entry:
                 try:
@@ -112,6 +101,8 @@ class MlxEswitchDaemon(object):
                 polling_counter+=1
 
 def main():
+    config.init(sys.argv[1:])
+    config.setup_logging()
     try:
         daemon = MlxEswitchDaemon()
         daemon.start()

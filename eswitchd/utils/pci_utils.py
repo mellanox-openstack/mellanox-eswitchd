@@ -17,14 +17,14 @@
 
 import ethtool
 import glob
-import logging
+from oslo_log import log as logging
 import os
 import re
 import sys
 from command_utils import execute
 from eswitchd.common import constants
 
-LOG = logging.getLogger('eswitchd')
+LOG = logging.getLogger(__name__)
 
 class pciUtils:
     NET_PATH =  "/sys/class/net/"

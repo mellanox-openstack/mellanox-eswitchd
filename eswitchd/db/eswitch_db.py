@@ -15,11 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#from nova.openstack.common import log as logging
-import logging
+from oslo_log import log as logging
 from eswitchd.common import constants
 
-LOG = logging.getLogger('eswitchd')
+LOG = logging.getLogger(__name__)
+
 
 class eSwitchDB():
 
@@ -36,7 +36,7 @@ class eSwitchDB():
 
         def plug_nic(self, port_name):
             self.port_table[port_name]['state'] = constants.VPORT_STATE_ATTACHED
-            LOG.debug("port table:",self.port_table)
+            LOG.info("port table:",self.port_table)
 
         def get_ports(self):
             return self.port_table
