@@ -1,4 +1,6 @@
-%global sname eswitchd
+%global srcname eswitchd
+%global package_name eswitchd
+%global docpath doc/build/html
 
 Name:       eswitchd
 Version:    %{_eswitchd_version}
@@ -7,25 +9,25 @@ Summary:    Mellanox eSwitch Daemon
 
 Group:      Default
 License:    ASL 2.0
-Source0:    %{sname}-%{version}.tar.gz
+Source0:    %{srcname}-%{version}.tar.gz
 
-BuildArch:  x86_64
-Requires:   python-setuptools
-Requires:   python-zmq
-Requires:   libvirt
-Requires:   python-ethtool
-Requires:   sudo
-Requires:   shadow-utils
-Requires:   glibc-common
-Requires(post):   chkconfig
+BuildArch:      noarch
+BuildRequires:  python2-devel
+BuildRequires:  python-mock
+BuildRequires:  python-neutron-tests
+BuildRequires:  python-oslo-sphinx
+BuildRequires:  python-pbr
+BuildRequires:  python-setuptools
+BuildRequires:  python-sphinx
+BuildRequires:  python-testrepository
+BuildRequires:  python-testtools
 
-BuildRequires: python-setuptools
-BuildRequires: json-c
-%if %{rhel} == 7
-BuildRequires: systemd
-%else
-BuildRequires: zeromq
-%endif
+Requires:       python-babel
+Requires:       python-pbr
+Requires:       openstack-neutron-common
+Requires:       python-zmq
+Requires:       libvirt
+Requires:       python-ethtool
 
 %description
 Mellanox eSwitch Daemon
@@ -55,83 +57,42 @@ if [ $1 -ge 1 ] ; then
 fi
 
 %prep
-%setup -q -n eswitchd
-# Remove bundled egg-info
-rm -rf eswitchd.egg-info
-# let RPM handle deps
-sed -i '/setup_requires/d; /install_requires/d; /dependency_links/d' setup.py
+%setup -q -n %{package_name}
 
 %build
-%{__python} setup.py build
+%{__python2} setup.py build
 
 %install
-%{__rm} -rf %{buildroot}
-%{__python} setup.py install -O1 --skip-build --root %{buildroot}
+export PBR_VERSION=%{version}
+export SKIP_PIP_INSTALL=1
+%{__python2} setup.py install --skip-build --root $RPM_BUILD_ROOT
 
 install -d -m 755 %{buildroot}%{_localstatedir}/log/eswitchd
 install -d -m 755 %{buildroot}%{_localstatedir}/run/eswitchd
 install -d -m 755 %{buildroot}%{_sysconfdir}/eswitchd
+install -d -m 755 %{buildroot}%{_sysconfdir}/eswitchd/rootwrap.d/
 install -d -m 755 %{buildroot}%{_sysconfdir}/init.d
-install -d -m 755 %{buildroot}%{_sysconfdir}/sysconfig
 
-install -m 755 etc/eswitchd/eswitchd.conf %{buildroot}%{_sysconfdir}/eswitchd
-install -m 755 etc/init.d/eswitchd %{buildroot}%{_sysconfdir}/init.d
-install -m 755 etc/sysconfig/eswitchd %{buildroot}%{_sysconfdir}/sysconfig
-
-
-install -d -m 755 %{buildroot}/usr/local/bin
-
-# Install sudoers
-install -D -m 440 etc/sudoers.d/eswitchd %{buildroot}%{_sysconfdir}/sudoers.d/eswitchd
-
-install -m 755 etc/eswitchd/rootwrap.conf %{buildroot}%{_sysconfdir}/eswitchd
-
-install -D -m 755 etc/eswitchd/rootwrap.d/eswitchd.filters %{buildroot}%{_sysconfdir}/eswitchd/rootwrap.d/eswitchd.filters
-
-%check
+mv etc/eswitchd/eswitchd.conf %{buildroot}%{_sysconfdir}/eswitchd
+mv etc/init.d/eswitchd %{buildroot}%{_sysconfdir}/init.d/eswitchd
+mv etc/eswitchd/rootwrap.conf %{buildroot}%{_sysconfdir}/eswitchd
+mv etc/eswitchd/rootwrap.d/eswitchd.filters %{buildroot}%{_sysconfdir}/eswitchd/rootwrap.d/eswitchd.filters
+rm -rf %{buildroot}/usr/etc
+rm -rf %{buildroo}%{python2_sitelib}/%{srcname}/tests
 
 %clean
 %{__rm} -rf %{buildroot}
 
 %files
+%doc README.rst
+%{python2_sitelib}/%{srcname}
+%{python2_sitelib}/%{srcname}-%{version}-py%{python2_version}.egg-info
 %dir %attr(0755, eswitch, eswitch) %{_localstatedir}/run/eswitchd
 %dir %attr(0755, eswitch, eswitch) %{_localstatedir}/log/eswitchd
-%{python_sitelib}/eswitchd
-%{python_sitelib}/*.egg-info
 %config(noreplace) %attr(0640, root, eswitch) %{_sysconfdir}/eswitchd/eswitchd.conf
-%config %attr(0755, root, eswitch) %{_sysconfdir}/init.d/eswitchd
-%config %attr(0755, root, eswitch) %{_sysconfdir}/sysconfig/eswitchd
-%config %attr(0440, root, root) %{_sysconfdir}/sudoers.d/eswitchd
 %config %attr(0755, root, root) %{_sysconfdir}/eswitchd/rootwrap.conf
 %config %attr(0644, root, root) %{_sysconfdir}/eswitchd/rootwrap.d/eswitchd.filters
-/usr/bin/eswitch-rootwrap
-/usr/bin/eswitchd
-%attr(0744, root, root) /usr/bin/ebrctl
-
-%changelog
-* Thu Mar 3  2015 Openstack Team <openstack@mellanox.com> 0.11-1
-  fix create pkey to support full pkey and partial pkey
-  add support for rhel7
-
-* Thu Jun 19 2014 Openstack Team <openstack@mellanox.com> 0.10-1
-  Fixed eswitchd logging
-  Fixed wrong error message when no PFs are found
-  Fix for getting GUID index in 2.2
-  Added fix to include ib_ipoib driver
-
-* Thu Dec 12 2013 Openstack Team <openstack@mellanox.com> 0.7-1
-  Running eswitch as eswitch user
-
-* Mon Dec 02 2013 Openstack Team <openstack@mellanox.com> 0.6-1
-- Bug fixes
-
-* Fri Nov 25 2013 Openstack Team <openstack@mellanox.com> 0.5-1
-- Bug fixes
-
-* Mon Sep 16 2013 Openstack Team <openstack@mellanox.com> 0.4-1
-- Bug fixes
-- Configurable zmq url connections
-
-* Thu May 02 2013 Openstack Team <openstack@mellanox.com> 0.1-1
-- Initial Release
-
+%attr(0755, root, eswitch) %{_sysconfdir}/init.d/eswitchd
+%attr(0554, root, root) /usr/bin/eswitchd-rootwrap
+%attr(0554, root, root) /usr/bin/eswitchd
+%attr(0554, root, root) /usr/bin/ebrctl

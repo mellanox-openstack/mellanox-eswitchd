@@ -37,6 +37,12 @@ readonly CONFIG_DIR=etc
 DIST=""
 
 
+function deb_cleanup() {
+    rm -rf etc
+    rm -rf eswitchd
+    rm -rf setup.py
+}
+
 function check_version_environment() {
     if [ -z $ESWITCHD_VERSION ] ; then
         echo "missing ESWITCHD_VERSION in environment variable please add it"
@@ -62,11 +68,14 @@ function check_dist() {
 
 
 function build_rpm(){
+    rm -rf ${BUILDDIR}
+    mkdir -p ${BUILDDIR}
     mkdir -p /root/rpmbuild/SOURCES
     mkdir -p ${BUILD_SRC_DIR}
     cp -a ${CONFIG_DIR} ${BUILD_SRC_DIR}
     cp -a ${PROJECT} ${BUILD_SRC_DIR}
-    cp  setup.py ${BUILD_SRC_DIR}
+    cp  setup.py setup.cfg README.rst ${BUILD_SRC_DIR}
+    cp -R .git ${BUILD_SRC_DIR}
     pushd ./
     cd ${BUILDDIR};tar zcvf ${PROJECT}-${ESWITCHD_VERSION}.tar.gz ${PROJECT}
     cp ${PROJECT}-${ESWITCHD_VERSION}.tar.gz ~/rpmbuild/SOURCES
@@ -77,7 +86,7 @@ function build_rpm(){
         exit ${FAILURE}
     fi
 
-    cp /root/rpmbuild/RPMS/x86_64/eswitchd-${ESWITCHD_VERSION}-${ESWITCHD_RELEASE}.*.x86_64.rpm .
+    cp /root/rpmbuild/RPMS/noarch/eswitchd-${ESWITCHD_VERSION}-${ESWITCHD_RELEASE}.*.noarch.rpm .
     if [ $? != ${SUCCESS} ] ; then
         echo "Failed to copy eswitchd rpm"
         exit ${FAILURE}
@@ -94,6 +103,7 @@ function update_deb_version(){
     sed "s/@@VERSION@@/${ESWITCHD_VERSION}/g;s/@@RELEASE@@/${ESWITCHD_RELEASE}/g" debian/changelog.template > debian/changelog
     if [ $? != ${SUCCESS} ] ; then
         echo "Failed to update deb version"
+        deb_cleanup
         exit ${FAILURE}
     fi
 }
@@ -104,16 +114,15 @@ function build_deb(){
     rm -rf eswitchd
     cp -rf ../etc .
     cp -rf ../eswitchd .
-    cp -rf ../setup.py .
+    cp -rf ../setup.py ../setup.cfg ../README.rst .
     update_deb_version
     dpkg-buildpackage -tc -uc -us
     if [ $? != ${SUCCESS} ] ; then
         echo "Failed to build eswitchd deb"
+        deb_cleanup
         exit ${FAILURE}
     fi
-    rm -rf etc
-    rm -rf eswitchd
-    rm -rf setup.py
+    deb_cleanup
 }
 
 check_version_environment
