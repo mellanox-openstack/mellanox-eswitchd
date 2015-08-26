@@ -3,6 +3,7 @@
 import argparse
 import re
 import sys
+
 from eswitchd.cli import conn_utils
 from eswitchd.cli import exceptions
 from eswitchd.common import constants

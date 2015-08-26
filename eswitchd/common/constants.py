@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-VENDOR='0x15b3'
+VENDOR = '0x15b3'
 VIF_TYPE_HOSTDEV = 'ib_hostdev'
 
 
@@ -26,6 +26,8 @@ UNTAGGED_VLAN_ID = 4095
 INVALID_MAC = '00:00:00:00:00:00'
 
 ADMIN_GUID_PATH = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s"
+GUID_INDEX_PATH = "/sys/class/infiniband/%s/iov/%s/ports/%s/gid_idx/0"
+PKEY_INDEX_PATH = "/sys/class/infiniband/%s/iov/%s/ports/%s/pkey_idx/%s"
 
 INVALID_GUID = 'ffffffffffffffff'
 

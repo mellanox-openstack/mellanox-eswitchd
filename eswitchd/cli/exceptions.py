@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-#
 # Copyright 2013 Mellanox Technologies, Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,8 +18,7 @@ _FATAL_EXCEPTION_FORMAT_ERRORS = False
 
 
 class BaseException(Exception):
-    """Base Exception class.
-    """
+
     message = "An unknown exception occurred"
 
     def __init__(self, **kwargs):
@@ -32,7 +29,6 @@ class BaseException(Exception):
             if _FATAL_EXCEPTION_FORMAT_ERRORS:
                 raise e
             else:
-                # at least get the core message out if something happened
                 self._error_string = self.message
 
     def __str__(self):

@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-#
 # Copyright 2013 Mellanox Technologies, Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,12 +12,15 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import json
+
+
 from oslo_config import cfg
 import zmq
+
 from eswitchd.cli import exceptions
-from eswitchd.common import config, constants
+from eswitchd.common import config
+from eswitchd.common import constants
 from eswitchd.utils.helper_utils import set_conn_url
 
 REQUEST_TIMEOUT = 50000
@@ -70,23 +71,23 @@ class ConnUtil(object):
         raise exceptions.MlxException(error_msg)
 
     def allocate_nic(self, vnic_mac, device_id, fabric, vnic_type, dev_name=None):
-        msg = json.dumps({'action':'create_port',
-                          'vnic_mac':vnic_mac,
-                          'device_id':device_id,
-                          'fabric':fabric,
-                          'vnic_type':vnic_type,
-                          'dev_name':dev_name})
+        msg = json.dumps({'action': 'create_port',
+                          'vnic_mac': vnic_mac,
+                          'device_id': device_id,
+                          'fabric': fabric,
+                          'vnic_type': vnic_type,
+                          'dev_name': dev_name})
         recv_msg = self.send_msg(msg)
         dev = recv_msg['dev']
         return dev
 
     def plug_nic(self, vnic_mac, device_id, fabric, vif_type, dev_name):
-        msg = json.dumps({'action':'plug_nic',
-                          'vnic_mac':vnic_mac,
-                          'device_id':device_id,
-                          'fabric':fabric,
-                          'vnic_type':vif_type,
-                          'dev_name':dev_name})
+        msg = json.dumps({'action': 'plug_nic',
+                          'vnic_mac': vnic_mac,
+                          'device_id': device_id,
+                          'fabric': fabric,
+                          'vnic_type': vif_type,
+                          'dev_name': dev_name})
 
         recv_msg = self.send_msg(msg)
         dev = recv_msg['dev']
@@ -94,18 +95,17 @@ class ConnUtil(object):
 
 
     def deallocate_nic(self, vnic_mac, fabric):
-        msg = json.dumps({'action':'delete_port',
-                          'fabric':fabric,
-                          'vnic_mac':vnic_mac})
+        msg = json.dumps({'action': 'delete_port',
+                          'fabric': fabric,
+                          'vnic_mac': vnic_mac})
         recv_msg = self.send_msg(msg)
         dev = recv_msg['dev']
         return dev
 
     def get_tables(self, fabric):
-        msg = json.dumps({'action':'get_eswitch_tables',
-                          'fabric':fabric,
+        msg = json.dumps({'action': 'get_eswitch_tables',
+                          'fabric': fabric,
                           })
         recv_msg = self.send_msg(msg)
         tables = recv_msg['tables']
         return tables
-

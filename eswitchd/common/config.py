@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-#
 # Copyright 2013 Mellanox Technologies, Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,30 +22,32 @@ LOG = logging.getLogger(__name__)
 DEFAULT_INTERFACE_MAPPINGS = []
 
 mlx_daemon_opts = [
-                    cfg.StrOpt('socket_os_transport', default="tcp"),
-                    cfg.StrOpt('socket_os_port', default="60001"),
-                    cfg.StrOpt('socket_os_addr', default="0.0.0.0"),
-                    cfg.ListOpt('fabrics',
-                                default=DEFAULT_INTERFACE_MAPPINGS,
-                                help=("List of <physical_network>:<physical_interface>")),
-                    cfg.IntOpt('default_timeout',
-                               default=5000,
-                               help=('Default timeout waiting for messages')),
-                    cfg.IntOpt('max_polling_count',
-                               default=5,
-                               help=('Daemon will do sync after max_polling_count * default_timeout')),
-                    cfg.StrOpt('rootwrap_conf',
-                               default='/etc/eswitchd/rootwrap.conf',
-                               help=('eswitchd rootwrap configuration file'))
+    cfg.StrOpt('socket_os_transport', default="tcp"),
+    cfg.StrOpt('socket_os_port', default="60001"),
+    cfg.StrOpt('socket_os_addr', default="0.0.0.0"),
+    cfg.ListOpt('fabrics',
+                default=DEFAULT_INTERFACE_MAPPINGS,
+                help=("List of <physical_network>:<physical_interface>")),
+    cfg.IntOpt('default_timeout',
+               default=5000,
+               help=('Default timeout waiting for messages')),
+    cfg.IntOpt('max_polling_count',
+               default=5,
+               help=('Daemon will do sync after max_polling_count * default_timeout')),
+    cfg.StrOpt('rootwrap_conf',
+               default='/etc/eswitchd/rootwrap.conf',
+               help=('eswitchd rootwrap configuration file'))
 ]
 
 
 cfg.CONF.register_opts(mlx_daemon_opts, "DAEMON")
 logging.register_options(cfg.CONF)
 
+
 def init(args, **kwargs):
     cfg.CONF(args=args, project='eswitchd',
              **kwargs)
+
 
 def setup_logging():
     """Sets up the logging options for a log with supplied name."""

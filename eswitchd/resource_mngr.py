@@ -139,14 +139,14 @@ class ResourceManager:
                     mac = self.macs_map[fabric][str(vf_index)]
                     devs.append((dev,mac,fabric))
                 except KeyError:
-                    LOG.warning("Failed to retrieve Hostdev MAC for dev %s",dev)
+                    LOG.warning("Failed to retrieve Hostdev MAC for dev %s", dev)
             else:
-                LOG.info("No Fabric defined for device %s",hostdev)
+                LOG.info("No Fabric defined for device %s", hostdev)
         return devs
 
-    def _get_pf_details(self,pf):
+    def _get_pf_details(self, pf):
         hca_port = self.pci_utils.get_eth_port(pf)
         pci_id  = self.pci_utils.get_pf_pci(pf)
-        pf_pci_id  = self.pci_utils.get_pf_pci(pf, type='normal')
+        pf_pci_id  = self.pci_utils.get_pf_pci(pf, 'normal')
         pf_mlx_dev = self.pci_utils.get_pf_mlx_dev(pf_pci_id)
         return (pci_id, hca_port, pf_mlx_dev)

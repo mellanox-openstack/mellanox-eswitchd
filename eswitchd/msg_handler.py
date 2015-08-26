@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-#
 # Copyright 2013 Mellanox Technologies, Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,15 +14,15 @@
 # limitations under the License.
 
 from oslo_log import log as logging
-from common import constants
-from db.eswitch_db import eSwitchDB
-from eswitch_handler import eSwitchHandler
+
+from eswitchd.common import constants
 
 LOG = logging.getLogger(__name__)
 
 
 class BasicMessageHandler(object):
     MSG_ATTRS_MANDATORY_MAP = set()
+
     def __init__(self, msg):
         self.msg = msg
 
@@ -32,222 +30,235 @@ class BasicMessageHandler(object):
         raise Exception("execute method MUST be implemented!")
 
     def validate(self):
-        ret = False
-        if set(self.msg.keys()) >= self.MSG_ATTRS_MANDATORY_MAP:
-            ret = True
+        ret = True
+        msg_attr = set(self.msg.keys())
+        for attr in self.MSG_ATTRS_MANDATORY_MAP:
+            if attr not in msg_attr:
+                return False
         if 'vnic_type' in self.msg.keys():
             ret = self.validate_vnic_type(self.msg['vnic_type'])
         return ret
 
-    def validate_vnic_type(self,vnic_type):
+    def validate_vnic_type(self, vnic_type):
         if vnic_type in (constants.VIF_TYPE_HOSTDEV, ):
             return True
         return False
 
-    def build_response(self,status,reason=None, response=None):
+    def build_response(self, status, reason=None, response=None):
         if status:
-            msg = {'status':'OK','response':response}
+            msg = {'status': 'OK', 'response': response}
         else:
-            msg = {'status':'FAIL','reason':reason}
+            msg = {'status': 'FAIL', 'reason': reason}
         return msg
+
 
 class AttachVnic(BasicMessageHandler):
     MSG_ATTRS_MANDATORY_MAP = set(['fabric', 'vnic_type',
                                    'device_id', 'vnic_mac',
                                    'dev_name'])
 
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
+    def __init__(self, msg):
+        super(AttachVnic, self).__init__(msg)
 
-    def execute(self, eSwitchHandler):
-        fabric     = self.msg['fabric']
-        vnic_type  = self.msg['vnic_type']
-        device_id  = self.msg['device_id']
-        vnic_mac   = (self.msg['vnic_mac']).lower()
+    def execute(self, eswitch_handler):
+        fabric = self.msg['fabric']
+        vnic_type = self.msg['vnic_type']
+        device_id = self.msg['device_id']
+        vnic_mac = (self.msg['vnic_mac']).lower()
         dev_name = self.msg['dev_name']
-        dev = eSwitchHandler.create_port(fabric, vnic_type, device_id, vnic_mac, dev_name)
+        dev = eswitch_handler.create_port(
+            fabric, vnic_type, device_id, vnic_mac, dev_name)
         if dev:
-            return self.build_response(True, response= {'dev':dev})
+            return self.build_response(True, response={'dev': dev})
         else:
-            return self.build_response(False, reason = 'Attach vnic failed')
+            return self.build_response(False, reason='Attach vnic failed')
+
 
 class PlugVnic(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric','device_id',
-                                   'vnic_mac','vnic_type',
-                                   'dev_name'])
+    MSG_ATTRS_MANDATORY_MAP = ('fabric', 'device_id',
+                               'vnic_mac', 'dev_name')
 
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
+    def __init__(self, msg):
+        super(PlugVnic, self).__init__(msg)
 
-    def execute(self, eSwitchHandler):
-        fabric     = self.msg['fabric']
-        device_id  = self.msg['device_id']
-        vnic_mac   = (self.msg['vnic_mac']).lower()
-        vnic_type = self.msg['vnic_type']
+    def execute(self, eswitch_handler):
+        fabric = self.msg['fabric']
+        device_id = self.msg['device_id']
+        vnic_mac = (self.msg['vnic_mac']).lower()
         dev_name = self.msg['dev_name']
 
-        dev = eSwitchHandler.plug_nic(fabric, device_id, vnic_mac, dev_name)
+        dev = eswitch_handler.plug_nic(fabric, device_id, vnic_mac, dev_name)
         if dev:
-            return self.build_response(True, response= {'dev':dev})
+            return self.build_response(True, response={'dev': dev})
         else:
-            return self.build_response(False, reason = 'Plug vnic failed')
+            return self.build_response(False, reason='Plug vnic failed')
+
 
 class DetachVnic(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric','vnic_mac'])
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
+    MSG_ATTRS_MANDATORY_MAP = ('fabric', 'vnic_mac')
 
-    def execute(self, eSwitchHandler):
-        fabric     = self.msg['fabric']
-        vnic_mac   = (self.msg['vnic_mac']).lower()
-        dev = eSwitchHandler.delete_port(fabric, vnic_mac)
+    def __init__(self, msg):
+        super(DetachVnic, self).__init__(msg)
+
+    def execute(self, eswitch_handler):
+        fabric = self.msg['fabric']
+        vnic_mac = (self.msg['vnic_mac']).lower()
+        dev = eswitch_handler.delete_port(fabric, vnic_mac)
         if dev:
-            return self.build_response(True, response = {'dev':dev})
+            return self.build_response(True, response={'dev': dev})
         else:
-            return self.build_response(True, response = {})
+            return self.build_response(True, response={})
+
 
 class SetVLAN(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric','port_mac','vlan'])
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
+    MSG_ATTRS_MANDATORY_MAP = ('fabric', 'port_mac', 'vlan')
 
-    def execute(self, eSwitchHandler):
-        fabric     = self.msg['fabric']
-        vnic_mac   = (self.msg['port_mac']).lower()
-        vlan   = self.msg['vlan']
-        ret = eSwitchHandler.set_vlan(fabric, vnic_mac, vlan)
+    def __init__(self, msg):
+        super(SetVLAN, self).__init__(msg)
+
+    def execute(self, eswitch_handler):
+        fabric = self.msg['fabric']
+        vnic_mac = (self.msg['port_mac']).lower()
+        vlan = self.msg['vlan']
+        ret = eswitch_handler.set_vlan(fabric, vnic_mac, vlan)
         reason = None
         if not ret:
-            reason ='Set VLAN Failed'
+            reason = 'Set VLAN Failed'
         if reason:
             return self.build_response(False, reason=reason)
-        return self.build_response(True, response = {})
+        return self.build_response(True, response={})
 
 
 class GetVnics(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric'])
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
+    MSG_ATTRS_MANDATORY_MAP = ('fabric', )
 
-    def execute(self, eSwitchHandler):
-        fabric   = self.msg['fabric']
+    def __init__(self, msg):
+        super(GetVnics, self).__init__(msg)
+
+    def execute(self, eswitch_handler):
+        fabric = self.msg['fabric']
         if fabric == '*':
-            fabrics = eSwitchHandler.eswitches.keys()
-            LOG.info("fabrics =%s",fabrics)
+            fabrics = eswitch_handler.eswitches.keys()
+            LOG.info("fabrics = %s", fabrics)
         else:
             fabrics = [fabric]
-        vnics = eSwitchHandler.get_vnics(fabrics)
-        return self.build_response(True, response =vnics)
+        vnics = eswitch_handler.get_vnics(fabrics)
+        return self.build_response(True, response=vnics)
+
 
 class PortRelease(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric','ref_by','mac'])
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
+    MSG_ATTRS_MANDATORY_MAP = ('fabric', 'ref_by', 'mac')
 
-    def execute(self, eSwitchHandler):
+    def __init__(self, msg):
+        super(PortRelease, self).__init__(msg)
+
+    def execute(self, eswitch_handler):
         ref_by_keys = ['mac_address']
-        fabric     = self.msg['fabric']
-        vnic_mac   = (self.msg['mac']).lower()
-        ref_by     = self.msg['ref_by']
-
+        fabric = self.msg['fabric']
+        vnic_mac = (self.msg['mac']).lower()
+        ref_by = self.msg['ref_by']
         reason = None
         if ref_by not in ref_by_keys:
             reason = "reb_by %s is not supported" % ref_by
         else:
             try:
-                eSwitchHandler.port_release(fabric, vnic_mac)
-            except Exception,e:
+                eswitch_handler.port_release(fabric, vnic_mac)
+            except Exception:
                 reason = "port release failed"
                 LOG.exception("PortRelease failed")
         if reason:
             return self.build_response(False, reason=reason)
-        return self.build_response(True, response = {})
+        return self.build_response(True, response={})
+
 
 class SetFabricMapping(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric','interface'])
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
+    MSG_ATTRS_MANDATORY_MAP = ('fabric', 'interface')
 
-    def execute(self, eSwitchHandler):
-        fabric     = self.msg['fabric']
-        interface   = self.msg['interface']
-        return self.build_response(True, response = {'fabric':fabric,'dev':interface})
-# @todo: add support for dynamic fabric setting
-#        (fabric,dev) = eSwitchHandler.set_fabric_mapping(fabric, interface)
-#        if not dev:
-#            return self.build_response(False, reason ='Set Fabric Mapping Failed')
-#        if dev != interface:
-#            return self.build_response(False, reason ='Fabric configured with interface %s'% dev)
-#        return self.build_response(True, response = {'fabric':fabric,'dev':dev})
+    def __init__(self, msg):
+        super(SetFabricMapping, self).__init__(msg)
+
+    def execute(self, eswitch_handler):
+        fabric = self.msg['fabric']
+        interface = self.msg['interface']
+        response = {'fabric': fabric, 'dev': interface}
+        return self.build_response(True, response=response)
+
 
 class PortUp(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric','ref_by','mac'])
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
+    MSG_ATTRS_MANDATORY_MAP = ('fabric', 'mac')
 
-    def execute(self, eSwitchHandler):
-        fabric     = self.msg['fabric']
-        ref_by   = self.msg['ref_by']
-        mac   = self.msg['mac']
-        return self.build_response(True, response = {})
+    def __init__(self, msg):
+        super(PortUp, self).__init__(msg)
+
+    def execute(self, eswitch_handler):
+        fabric = self.msg['fabric']
+        mac = self.msg['mac']
+        eswitch_handler.port_up(fabric, mac)
+        return self.build_response(True, response={})
+
 
 class PortDown(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric','ref_by','mac'])
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self,msg)
+    MSG_ATTRS_MANDATORY_MAP = ('fabric', 'mac')
 
-    def execute(self, eSwitchHandler):
-        fabric     = self.msg['fabric']
-        ref_by   = self.msg['ref_by']
-        mac   = self.msg['mac']
-        return self.build_response(True, response = {})
+    def __init__(self, msg):
+        super(PortDown, self).__init__(msg)
+
+    def execute(self, eswitch_handler):
+        fabric = self.msg['fabric']
+        mac = self.msg['mac']
+        eswitch_handler.port_down(fabric, mac)
+        return self.build_response(True, response={})
+
 
 class GetEswitchTables(BasicMessageHandler):
-    MSG_ATTRS_MANDATORY_MAP = set(['fabric'])
+    MSG_ATTRS_MANDATORY_MAP = ('fabric',)
 
-    def __init__(self,msg):
-        BasicMessageHandler.__init__(self, msg)
+    def __init__(self, msg):
+        super(GetEswitchTables, self).__init__(msg)
 
-    def execute(self, eSwitchHandler):
+    def execute(self, eswitch_handler):
         fabric = self.msg.get('fabric', '*')
         if fabric == '*':
-            fabrics = eSwitchHandler.eswitches.keys()
-            LOG.info("fabrics =%s",fabrics)
+            fabrics = eswitch_handler.eswitches.keys()
+            LOG.info("fabrics = %s", fabrics)
         else:
             fabrics = [fabric]
+        response = {'tables': eswitch_handler.get_eswitch_tables(fabrics)}
+        return self.build_response(True, response=response)
 
-        return self.build_response(True, response = {'tables':eSwitchHandler.get_eswitch_tables(fabrics)})
 
 class MessageDispatch(object):
     MSG_MAP = {
-               'create_port': AttachVnic,
-               'delete_port': DetachVnic,
-               'set_vlan': SetVLAN,
-               'get_vnics': GetVnics,
-               'port_release': PortRelease,
-               'port_up': PortUp,
-               'port_down': PortDown,
-               'define_fabric_mapping': SetFabricMapping,
-               'plug_nic': PlugVnic,
-               'get_eswitch_tables': GetEswitchTables,
-               }
-    def __init__(self,eSwitchHandler):
-        self.eSwitchHandler = eSwitchHandler
+       'create_port': AttachVnic,
+       'delete_port': DetachVnic,
+       'set_vlan': SetVLAN,
+       'get_vnics': GetVnics,
+       'port_release': PortRelease,
+       'port_up': PortUp,
+       'port_down': PortDown,
+       'define_fabric_mapping': SetFabricMapping,
+       'plug_nic': PlugVnic,
+       'get_eswitch_tables': GetEswitchTables
+    }
+
+    def __init__(self, eswitch_handler):
+        self.eswitch_handler = eswitch_handler
 
     def handle_msg(self, msg):
-        LOG.info("Handling message - %s",msg)
+        LOG.info("Handling message - %s", msg)
         result = {}
         action = msg.pop('action')
 
         if action in MessageDispatch.MSG_MAP.keys():
             msg_handler = MessageDispatch.MSG_MAP[action](msg)
             if msg_handler.validate():
-                result = msg_handler.execute(self.eSwitchHandler)
+                result = msg_handler.execute(self.eswitch_handler)
             else:
                 LOG.error('Invalid message - cannot handle')
-                result = {'status':'FAIL','reason':'validation failed'}
+                result = {'status': 'FAIL', 'reason': 'validation failed'}
         else:
-            LOG.error("Unsupported action - %s",action)
-            result = {'action':action, 'status':'FAIL','reason':'unknown action'}
+            LOG.error("Unsupported action - %s", action)
+            result = {'action': action, 'status': 'FAIL',
+                      'reason': 'unknown action'}
         result['action'] = action
         return result
