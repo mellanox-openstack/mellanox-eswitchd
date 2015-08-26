@@ -40,7 +40,7 @@ class BasicMessageHandler(object):
         return ret
 
     def validate_vnic_type(self,vnic_type):
-        if vnic_type in (constants.VIF_TYPE_DIRECT, constants.VIF_TYPE_HOSTDEV, constants.VIF_TYPE_MLNX_DIRECT):
+        if vnic_type in (constants.VIF_TYPE_HOSTDEV, ):
             return True
         return False
 
@@ -251,22 +251,3 @@ class MessageDispatch(object):
             result = {'action':action, 'status':'FAIL','reason':'unknown action'}
         result['action'] = action
         return result
-
-def main():
-    handler = eSwitchHandler([('mlx1','eth4')])
-    dispatcher = MessageDispatch(handler)
-    mac = '52:54:00:97:3f:1f'
-    msg = {
-           'src_ipv4': '10.20.30.50',
-            'fabric': 'mlx1',
-            'dst_ipv4': '11.22.33.44',
-            'port_mac': mac,
-            'udp_src_port': '100',
-            'action': 'acl_set',
-            'udp_dst_port': '400',
-            'ip_protocol':17}
-
-    dispatcher.handle_msg(msg)
-
-if __name__ == '__main__':
-    main()

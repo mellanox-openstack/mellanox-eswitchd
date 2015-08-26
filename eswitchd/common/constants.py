@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-#
 # Copyright 2013 Mellanox Technologies, Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +14,6 @@
 # limitations under the License.
 
 VENDOR='0x15b3'
-SUBS_DEV='0x0050'
-LINK_UP='1'
-
-
-VIF_TYPE_MLNX_DIRECT = 'mlnx_direct'
-VIF_TYPE_DIRECT = 'direct'
 VIF_TYPE_HOSTDEV = 'ib_hostdev'
 
 
@@ -30,8 +22,6 @@ VPORT_STATE_PENDING = 'pending'
 VPORT_STATE_UNPLUGGED = 'unplugged'
 
 UNTAGGED_VLAN_ID = 4095
-
-PROTOCOLS = {'tcp4':6, 'udp4':17}
 
 INVALID_MAC = '00:00:00:00:00:00'
 
@@ -42,4 +32,3 @@ INVALID_GUID = 'ffffffffffffffff'
 IFCS_PATH = '/sys/class/net/*'
 
 CONN_URL = '%(transport)s://%(addr)s:%(port)s'
-

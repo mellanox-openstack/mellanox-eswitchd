@@ -22,50 +22,43 @@ LOG = logging.getLogger(__name__)
 
 class DeviceDB():
     def __init__(self):
-            self.device_db  = {}
-            
+        self.device_db  = {}
+
     def get_pf(self,fabric):
         return self.device_db[fabric]['pf']
-    
-    def add_fabric(self, fabric, pf, pci_id, hca_port, fabric_type, pf_mlx_dev):  
-        list_keys = ['vfs','eths','free_vfs','reserved_vfs','free_eths','reserved_eths']  
+
+    def add_fabric(self, fabric, pf, pci_id, hca_port, fabric_type, pf_mlx_dev):
+        list_keys = ('vfs', 'free_vfs', 'reserved_vfs')
         details = {}
         for key in list_keys:
             details[key]=[]
-        details['pf'] = pf 
+        details['pf'] = pf
         details['pci_id'] = pci_id
-        details['hca_port'] = hca_port          
+        details['hca_port'] = hca_port
         details['fabric_type'] = fabric_type
         details['pf_mlx_dev'] = pf_mlx_dev
         self.device_db[fabric] = details
-    
+
     def get_fabric_details(self, fabric):
         return self.device_db[fabric]
-   
-    def set_fabric_devices(self,fabric,eths,vfs):
+
+    def set_fabric_devices(self, fabric, vfs):
         self.device_db[fabric]['vfs'] = vfs
         self.device_db[fabric]['free_vfs'] = vfs[:]
-        self.device_db[fabric]['eths'] = eths
-        self.device_db[fabric]['free_eths'] = eths[:]
-        
-    def get_free_eths(self, fabric):
-        return self.device_db[fabric]['free_eths']
-    
-    def get_free_vfs(self,fabric):
+
+    def get_free_vfs(self, fabric):
         return self.device_db[fabric]['free_vfs']
-    
-    def get_free_devices(self,fabric):
-        return self.device_db[fabric]['free_vfs'] + self.device_db[fabric]['free_eths']
-    
+
+    def get_free_devices(self, fabric):
+        return self.get_free_vfs(fabric)
+
     def get_dev_fabric(self,dev):
         for fabric in self.device_db:
-            if dev in self.device_db[fabric]['vfs']+self.device_db[fabric]['eths']:
+            if dev in self.device_db[fabric]['vfs']:
                 return fabric
-            
-    def allocate_device(self,fabric,is_device=True,dev=None):
+
+    def allocate_device(self, fabric, dev=None):
         available_resources = self.device_db[fabric]['free_vfs']
-        if is_device:
-            available_resources = self.device_db[fabric]['free_eths']
         try:
             if dev:
                 available_resources.remove(dev)
@@ -75,16 +68,13 @@ class DeviceDB():
         except Exception,e:
             LOG.error("exception on device allocation on dev  %s - No available resources." % dev)
             raise e
-        
-    def deallocate_device(self,fabric,is_device,dev):
+
+    def deallocate_device(self, fabric, dev):
         resources = self.device_db[fabric]['vfs']
         available_resources = self.device_db[fabric]['free_vfs']
-        if is_device:
-            resources = self.device_db[fabric]['eths']
-            available_resources = self.device_db[fabric]['free_eths']
-        if dev in resources:                          
+        if dev in resources:
             available_resources.append(dev)
-            return dev          
+            return dev
         else:
             return None
 

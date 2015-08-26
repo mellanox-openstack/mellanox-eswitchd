@@ -15,14 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import glob
-from oslo_log import log as logging
 import sys
-from common.exceptions import MlxException
+
+from oslo_log import log as logging
+
 from common import constants
-from common import config
-from oslo_config import cfg
+from common import exceptions
 from db import eswitch_db
 from resource_mngr import ResourceManager
 from utils import pci_utils
@@ -45,10 +44,7 @@ class eSwitchHandler(object):
         self.eswitches = {}
         self.pci_utils = pci_utils.pciUtils()
         self.rm = ResourceManager()
-        self.devices = {
-                        constants.VIF_TYPE_DIRECT: set(),
-                        constants.VIF_TYPE_HOSTDEV: set()
-        }
+        self.devices = set()
         if fabrics:
             self.add_fabrics(fabrics)
 
@@ -82,39 +78,36 @@ class eSwitchHandler(object):
         devices, vm_ids = self.rm.scan_attached_devices()
         added_devs = {}
         removed_devs = {}
-        for type, devs in devices.items():
-            added_devs[type] = set(devs) - self.devices[type]
-            removed_devs[type] = self.devices[type] - set(devs)
-            self._treat_added_devices(added_devs[type], type, vm_ids)
-            self._treat_removed_devices(removed_devs[type], type)
-            self.devices[type] = set(devices[type])
+        added_devs = set(devices) - self.devices
+        removed_devs = self.devices - set(devices)
+        self._treat_added_devices(added_devs, vm_ids)
+        self._treat_removed_devices(removed_devs)
+        self.devices = set(devices)
 
     def _add_fabric(self, fabric, pf, fabric_type):
         self.rm.add_fabric(fabric, pf, fabric_type)
         self._config_port_up(pf)
         vfs = self.rm.get_free_vfs(fabric)
-        eths = self.rm.get_free_eths(fabric)
 
         for vf in vfs:
             self.eswitches[fabric].create_port(vf, constants.VIF_TYPE_HOSTDEV)
-        for eth in eths:
-            self.eswitches[fabric].create_port(eth, constants.VIF_TYPE_DIRECT)
 
-    def _treat_added_devices(self, devices, dev_type, vm_ids):
-        for dev, mac, fabric in devices:
+    def _treat_added_devices(self, devices, vm_ids):
+        for device in devices:
+            dev, mac, fabric = device
             if fabric:
-                self.rm.allocate_device(fabric, dev_type=dev_type, dev=dev)
+                self.rm.allocate_device(fabric, dev=dev)
                 self.eswitches[fabric].attach_vnic(port_name=dev, device_id=vm_ids[dev], vnic_mac=mac)
                 if self.eswitches[fabric].vnic_exists(mac):
                     self.eswitches[fabric].plug_nic(port_name=dev)
             else:
                 LOG.info("No Fabric defined for device %s", dev)
 
-    def _treat_removed_devices(self, devices, dev_type):
+    def _treat_removed_devices(self, devices):
         for dev, mac in devices:
             fabric = self.rm.get_fabric_for_dev(dev)
             if fabric:
-                self.rm.deallocate_device(fabric, dev_type=dev_type, dev=dev)
+                self.rm.deallocate_device(fabric, dev=dev)
                 self.eswitches[fabric].detach_vnic(vnic_mac=mac)
             else:
                 LOG.info("No Fabric defined for device %s", dev)
@@ -151,8 +144,8 @@ class eSwitchHandler(object):
                 if eswitch.attach_vnic(pci_slot, device_id, vnic_mac, pci_slot):
                     self._config_vf_mac_address(fabric, pci_slot, vnic_mac)
                 else:
-                    raise MlxException('Failed to attach vnic')
-            except (RuntimeError, MlxException):
+                    raise exceptions.MlxException('Failed to attach vnic')
+            except (RuntimeError, exceptions.MlxException):
                 LOG.error('Create port operation failed ')
                 self.rm.deallocate_device(fabric, vnic_type, pci_slot)
                 pci_slot = None
@@ -178,9 +171,6 @@ class eSwitchHandler(object):
         return pci_slot
 
     def delete_port(self, fabric, vnic_mac):
-        """
-        @note: Free Virtual function associated with vNIC MAc
-        """
         dev = None
         eswitch = self._get_vswitch_for_fabric(fabric)
         if eswitch:
@@ -192,9 +182,6 @@ class eSwitchHandler(object):
         return dev
 
     def port_release(self, fabric, vnic_mac):
-        """
-        @todo: handle failures
-        """
         ret = None
         eswitch = self._get_vswitch_for_fabric(fabric)
         dev = eswitch.get_dev_for_vnic(vnic_mac)
@@ -212,7 +199,7 @@ class eSwitchHandler(object):
             dev = eswitch.get_dev_for_vnic(vnic_mac)
             if dev:
                 vnic_type = eswitch.get_port_type(dev)
-                self._config_port_down(dev, vnic_type)
+                LOG.info("IB port for MAC %s doen't support port down ", vnic_mac)
             else:
                 LOG.info("No device for MAC %s", vnic_mac)
 
@@ -226,16 +213,11 @@ class eSwitchHandler(object):
                 if state in (constants.VPORT_STATE_ATTACHED, constants.VPORT_STATE_UNPLUGGED):
                     if eswitch.get_port_table()[dev]['alias']:
                         dev = eswitch.get_port_table()[dev]['alias']
-
-                    pf = self._get_device_pf(fabric)
-                    if pf:
-                        try:
-                            self._config_vlan_hostdev(fabric, pf, dev, vlan)
-                            return True
-                        except RuntimeError:
-                            LOG.error('Set VLAN operation failed')
-                    else:
-                        LOG.error('Invalid VF/PF index for device %s,PF-%s', dev, pf)
+                    try:
+                        self._config_vlan_ib(fabric, dev, vlan)
+                        return True
+                    except RuntimeError:
+                        LOG.error('Set VLAN operation failed')
         return False
 
     def get_eswitch_tables(self, fabrics):
@@ -254,10 +236,6 @@ class eSwitchHandler(object):
             return self.eswitches[fabric]
         else:
             return
-
-    def _get_device_pf(self, fabric):
-        pf = self.rm.get_fabric_pf(fabric)
-        return pf
 
     def _config_vf_pkey(self, ppkey_idx, pkey_idx, pf_mlx_dev, vf_pci_id, hca_port):
         path = "/sys/class/infiniband/%s/iov/%s/ports/%s/pkey_idx/%s" % (pf_mlx_dev, vf_pci_id, hca_port, pkey_idx)
@@ -283,28 +261,22 @@ class eSwitchHandler(object):
         vguid = self._get_guid_from_mac(vnic_mac)
         fabric_details = self.rm.get_fabric_details(fabric)
         pf = fabric_details['pf']
-        fabric_type = fabric_details['fabric_type']
-        if fabric_type == 'ib':
-            hca_port = fabric_details['hca_port']
-            pf_mlx_dev = fabric_details['pf_mlx_dev']
-            self._config_vf_pkey(INVALID_PKEY, DEFAULT_PKEY_IDX, pf_mlx_dev, dev, hca_port)
+        hca_port = fabric_details['hca_port']
+        pf_mlx_dev = fabric_details['pf_mlx_dev']
+        self._config_vf_pkey(INVALID_PKEY, DEFAULT_PKEY_IDX, pf_mlx_dev, dev, hca_port)
 
-            guid_idx = self._get_guid_idx(pf_mlx_dev, dev, hca_port)
-            path = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s" % (pf_mlx_dev, hca_port, guid_idx)
-            cmd = ['ebrctl', 'write-sys', path, vguid]
-            execute(cmd, root_helper=None)
-            ppkey_idx = self._get_pkey_idx(int(DEFAULT_PKEY, 16), pf_mlx_dev, hca_port)
-            if ppkey_idx >= 0:
-                self._config_vf_pkey(ppkey_idx, PARTIAL_PKEY_IDX, pf_mlx_dev, dev, hca_port)
-            else:
-                LOG.error("Can't find partial management pkey for %s:%s" % (pf_mlx_dev, dev))
+        guid_idx = self._get_guid_idx(pf_mlx_dev, dev, hca_port)
+        path = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s" % (pf_mlx_dev, hca_port, guid_idx)
+        cmd = ['ebrctl', 'write-sys', path, vguid]
+        execute(cmd, root_helper=None)
+        ppkey_idx = self._get_pkey_idx(int(DEFAULT_PKEY, 16), pf_mlx_dev, hca_port)
+        if ppkey_idx >= 0:
+            self._config_vf_pkey(ppkey_idx, PARTIAL_PKEY_IDX, pf_mlx_dev, dev, hca_port)
+        else:
+            LOG.error("Can't find partial management pkey for %s:%s" % (pf_mlx_dev, dev))
 
-    def _config_vlan_hostdev(self, fabric, pf, dev, vlan):
+    def _config_vlan_ib(self, fabric, dev, vlan):
         fabric_details = self.rm.get_fabric_details(fabric)
-        fabric_type = fabric_details['fabric_type']
-        self._config_vlan_ib(vlan, fabric_details, dev)
-
-    def _config_vlan_ib(self, vlan, fabric_details, dev):
         hca_port = fabric_details['hca_port']
         pf_mlx_dev = fabric_details['pf_mlx_dev']
         ppkey_idx = self._get_pkey_idx(str(vlan), pf_mlx_dev, hca_port)
@@ -327,19 +299,7 @@ class eSwitchHandler(object):
                 return path.split('/')[-1]
         return None
 
-    def _config_port_down(self, dev, vnic_type=constants.VIF_TYPE_DIRECT):
-        if vnic_type == constants.VIF_TYPE_DIRECT:
-            cmd = ['ip', 'link', 'set', dev, 'down']
-            execute(cmd, root_helper=None)
-
     def _config_port_up(self, dev):
         cmd = ['ip', 'link', 'set', dev, 'up']
         execute(cmd, root_helper=None)
 
-    def _set_devname(self, device_name, dev):
-        self._config_port_down(dev)
-        cmd = ['ip', 'link', 'set', dev, 'name', device_name]
-        execute(cmd, root_helper=None)
-
-if __name__ == '__main__':
-    handler = eSwitchHandler([('default', 'autoeth'), ])

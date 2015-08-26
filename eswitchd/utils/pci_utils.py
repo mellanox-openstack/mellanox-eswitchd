@@ -14,46 +14,29 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import ethtool
 import glob
-from oslo_log import log as logging
 import os
 import re
 import sys
+
+import ethtool
+from oslo_log import log as logging
+
 from command_utils import execute
 from eswitchd.common import constants
 
 LOG = logging.getLogger(__name__)
 
-class pciUtils:
-    NET_PATH =  "/sys/class/net/"
-    VF_PF_NETDEV =  "/sys/bus/pci/devices/VF/physfn/net"
-    ETHS_PATH = "/sys/class/net/eth*"
-    ETH_PF_NETDEV = "/sys/class/net/DEV/device/physfn/net"
-    ETH_PATH = "/sys/class/net/ETH"
-    IBS_PATH = "/sys/class/net/ib*"
-    ETH_PF_NETDEV = "/sys/class/net/DEV/device/physfn/net"
+class pciUtils(object):
+    ETH_PATH = "/sys/class/net/%(interface)s"
     ETH_DEV =  ETH_PATH + "/device"
-    ETH_MAC =  ETH_PATH + "/address"
     ETH_PORT = ETH_PATH + "/dev_id"
-    LINK_PATH = ETH_PATH + "/carrier"
     PF_MLX_DEV_PATH = "/sys/class/infiniband/*"
     VENDOR_PATH = ETH_DEV + '/vendor'
-
-    VF_BIND_PATH =  "/sys/bus/pci/drivers/mlx4_core/bind"
-    VF_UNBIND_PATH =  "/sys/bus/pci/drivers/mlx4_core/unbind"
+    DEVICE_TYPE_PATH = ETH_DEV + '/device'
     VFS_PATH = ETH_DEV + "/virtfn*"
 
-
-    def __init__(self):
-        pass
-
     def get_dev_attr(self, attr_path):
-        """
-        @param attr_path: The full path of the attribute of the device
-        @return: The content of the first line or None if file not found
-        """
         try:
             fd = open(attr_path)
             return fd.readline().strip()
@@ -61,17 +44,24 @@ class pciUtils:
             return
 
     def verify_vendor_pf(self, pf, vendor_id = constants.VENDOR):
-        """
-	Verify that PF has the specified vendor id
-	"""
-        vendor_path = pciUtils.VENDOR_PATH.replace("ETH", pf)
+        vendor_path = pciUtils.VENDOR_PATH % {'interface': pf}
         if self.get_dev_attr(vendor_path) == vendor_id:
-	        return True
+            return True
         else:
             return False
 
+    def get_port_device_type(self, pf):
+        device_type = None
+        device_type_file = pciUtils.DEVICE_TYPE_PATH % {'interface': pf}
+        try:
+            with open(device_type_file, 'r') as fd:
+                device_type = fd.read()
+        except IOError:
+            pass
+        return device_type
+
     def is_sriov_pf(self, pf):
-        vfs_path = pciUtils.VFS_PATH.replace("ETH", pf)
+        vfs_path = pciUtils.VFS_PATH % {'interface': pf}
         vfs = glob.glob(vfs_path)
         if vfs:
             return True
@@ -83,7 +73,7 @@ class pciUtils:
         try:
             result = execute(cmd, root_helper=None)
         except Exception,e:
-            LOG.warning("Failed to execute command %s due to %s",cmd,e)
+            LOG.warning("Failed to execute command %s due to %s", cmd, e)
             raise
         if result.find('link/ether') != -1:
             return 'eth'
@@ -123,16 +113,8 @@ class pciUtils:
                                % mlnx_pfs)
         return mlnx_pfs[0]
 
-    def get_eth_mac(self, dev):
-        mac_path = self.ETH_MAC.replace("ETH", dev)
-        return self.get_dev_attr(mac_path)
-
     def get_eth_vf(self, dev):
-        """
-        @param dev: Ethetnet device
-        @return: VF of Ethernet device
-        """
-        vf_path = pciUtils.ETH_DEV.replace("ETH", dev)
+        vf_path = pciUtils.ETH_DEV % {'interface': dev}
         try:
             device = os.readlink(vf_path)
             vf = device.split('/')[3]
@@ -170,7 +152,7 @@ class pciUtils:
         return vf_index
 
     def get_eth_port(self, dev):
-        port_path = pciUtils.ETH_PORT.replace("ETH", dev)
+        port_path = pciUtils.ETH_PORT % {'interface': dev}
         try:
             with open(port_path) as f:
                 dev_id = int(f.read(),0)
@@ -190,7 +172,7 @@ class pciUtils:
                     vf_index, mac = match.groups()
                     macs_map[vf_index] = mac
         except Exception,e:
-            LOG.warning("Failed to execute command %s due to %s",cmd,e)
+            LOG.warning("Failed to execute command %s due to %s", cmd, e)
             raise
         return macs_map
 

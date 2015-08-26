@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-#
 # Copyright 2013 Mellanox Technologies, Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import glob
-import libvirt
 from lxml import etree
 import os
+
+import libvirt
 from oslo_log import log as logging
-from utils.pci_utils import pciUtils
-from db import device_db
+
+
 from common import constants
-from common.exceptions import MlxException
+from common import exceptions
+from db import device_db
+from utils import pci_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -32,20 +32,18 @@ NET_PATH = "/sys/class/net/"
 
 class ResourceManager:
     def __init__(self):
-        self.pci_utils = pciUtils()
+        self.pci_utils = pci_utils.pciUtils()
         self.device_db = device_db.DeviceDB()
 
     def add_fabric(self, fabric, pf, fabric_type):
         pci_id, hca_port, pf_mlx_dev = self._get_pf_details(pf)
         self.device_db.add_fabric(fabric, pf, pci_id, hca_port, fabric_type, pf_mlx_dev)
-        eths,vfs = self.discover_devices(pf,hca_port)
-        if fabric_type == 'ib':
-            eths = []
-        LOG.info("PF %s, eths=%s, vfs=%s" % (pf, eths, vfs))
-        self.device_db.set_fabric_devices(fabric,eths,vfs)
+        vfs = self.discover_devices(pf,hca_port)
+        LOG.info("PF %s, vfs=%s" % (pf, vfs))
+        self.device_db.set_fabric_devices(fabric, vfs)
 
     def scan_attached_devices(self):
-        devices = {constants.VIF_TYPE_DIRECT:[], constants.VIF_TYPE_HOSTDEV:[]}
+        devices = []
         vm_ids = {}
         conn = libvirt.openReadOnly('qemu:///system')
         domains = []
@@ -68,7 +66,7 @@ class ResourceManager:
             hostdevs   = tree.xpath("devices/hostdev/source/address")
             vm_id = tree.find('uuid').text
             for dev in self._get_attached_hostdevs(hostdevs):
-                devices[constants.VIF_TYPE_HOSTDEV].append(dev)
+                devices.append(dev)
                 vm_ids[dev[0]] = vm_id
         return devices, vm_ids
 
@@ -78,57 +76,39 @@ class ResourceManager:
     def get_fabric_details(self, fabric):
         return self.device_db.get_fabric_details(fabric)
 
-    def discover_devices(self,pf,hca_port):
-        '''
-        @return: tuple of lists ETH devices (like eth4) and Virtual Functions (like 0000:04:00.7 domain:bus:slot.function)
-        '''
-        eths = list()
+    def discover_devices(self, pf, hca_port):
         vfs = list()
         vfs_paths = glob.glob(NET_PATH + pf + "/device/virtfn*")
         for vf_path in vfs_paths:
             path = vf_path+'/net'
-            if os.path.isdir(path):
-                eth_dirs = os.listdir(path)
-                for eth in eth_dirs:
-                    port_path = "/".join([path,eth,"dev_id"])
-                    fd = open(port_path)
-                    dev_id = int(fd.read(),0)
-
-                    if int(dev_id) == int(hca_port)-1:
-                        eths.append(eth)
-            else:
+            if not os.path.isdir(path):
                 vf = os.readlink(vf_path).strip('../')
-                vfs.append(vf) 
-        return (eths, vfs)
-        
-    def get_free_eths(self, fabric):
-        return self.device_db.get_free_eths(fabric)
-    
+                vfs.append(vf)
+        return vfs
+
     def get_free_vfs(self,fabric):
         return self.device_db.get_free_vfs(fabric)
-    
+
     def get_free_devices(self,fabric):
         return self.device_db.get_free_devices(fabric)
 
-    def allocate_device(self, fabric, dev_type, dev=None):
-        is_device = True if dev_type == 'direct' else False
+    def allocate_device(self, fabric, dev=None):
         try:
-            dev = self.device_db.allocate_device(fabric,is_device,dev)        
+            dev = self.device_db.allocate_device(fabric,dev)
             return dev
         except Exception:
-            raise MlxException('Failed to allocate device')
+            raise exceptions.MlxException('Failed to allocate device')
 
-    def deallocate_device(self, fabric,dev_type,dev):
-        is_device = True if dev_type == 'direct' else False
+    def deallocate_device(self, fabric, dev):
         try:
-            dev = self.device_db.deallocate_device(fabric,is_device,dev)        
+            dev = self.device_db.deallocate_device(fabric, dev)
             return dev
         except Exception:
             return None
-     
+
     def get_fabric_for_dev(self, dev):
         return self.device_db.get_dev_fabric(dev)
-        
+
     def _get_vfs_macs(self):
         macs_map = {}
         fabrics = self.device_db.device_db.keys()
@@ -136,15 +116,15 @@ class ResourceManager:
             fabric_details = self.device_db.get_fabric_details(fabric)
             pf = fabric_details['pf']
             fabric_type = fabric_details['fabric_type']
-            hca_port = fabric_details['hca_port']          
+            hca_port = fabric_details['hca_port']
             pf_mlx_dev = fabric_details['pf_mlx_dev']
             try:
                 macs_map[fabric] = self.pci_utils.get_vfs_macs_ib(pf, pf_mlx_dev, hca_port)
             except Exception:
                 LOG.warning("Failed to get vfs macs for fabric %s ",fabric)
                 continue
-        return macs_map 
-    
+        return macs_map
+
     def _get_attached_hostdevs(self, hostdevs):
         devs = []
         for hostdev in hostdevs:
@@ -163,18 +143,6 @@ class ResourceManager:
             else:
                 LOG.info("No Fabric defined for device %s",hostdev)
         return devs
-    
-    def _get_attached_interfaces(self, interfaces):
-        devs = []    
-        for interface in interfaces:
-            mac = interface.find('mac').get('address')
-            dev = interface.find('source').get('dev')
-            fabric = self.get_fabric_for_dev(dev)
-            if fabric:
-                devs.append((dev,mac,fabric))
-            else:
-                LOG.info("No Fabric defined for device %s",dev)
-        return devs
 
     def _get_pf_details(self,pf):
         hca_port = self.pci_utils.get_eth_port(pf)
@@ -182,4 +150,3 @@ class ResourceManager:
         pf_pci_id  = self.pci_utils.get_pf_pci(pf, type='normal')
         pf_mlx_dev = self.pci_utils.get_pf_mlx_dev(pf_pci_id)
         return (pci_id, hca_port, pf_mlx_dev)
-    
