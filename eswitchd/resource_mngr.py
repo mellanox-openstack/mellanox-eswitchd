@@ -28,9 +28,9 @@ from utils import pci_utils
 
 LOG = logging.getLogger(__name__)
 
-NET_PATH = "/sys/class/net/"
 
 class ResourceManager:
+
     def __init__(self):
         self.pci_utils = pci_utils.pciUtils()
         self.device_db = device_db.DeviceDB()
@@ -38,8 +38,8 @@ class ResourceManager:
     def add_fabric(self, fabric, pf, fabric_type):
         pci_id, hca_port, pf_mlx_dev = self._get_pf_details(pf)
         self.device_db.add_fabric(fabric, pf, pci_id, hca_port, fabric_type, pf_mlx_dev)
-        vfs = self.discover_devices(pf,hca_port)
-        LOG.info("PF %s, vfs=%s" % (pf, vfs))
+        vfs = self.discover_devices(pf)
+        LOG.info("PF %s, vfs = %s" % (pf, vfs))
         self.device_db.set_fabric_devices(fabric, vfs)
 
     def scan_attached_devices(self):
@@ -76,35 +76,8 @@ class ResourceManager:
     def get_fabric_details(self, fabric):
         return self.device_db.get_fabric_details(fabric)
 
-    def discover_devices(self, pf, hca_port):
-        vfs = list()
-        vfs_paths = glob.glob(NET_PATH + pf + "/device/virtfn*")
-        for vf_path in vfs_paths:
-            path = vf_path+'/net'
-            if not os.path.isdir(path):
-                vf = os.readlink(vf_path).strip('../')
-                vfs.append(vf)
-        return vfs
-
-    def get_free_vfs(self,fabric):
-        return self.device_db.get_free_vfs(fabric)
-
-    def get_free_devices(self,fabric):
-        return self.device_db.get_free_devices(fabric)
-
-    def allocate_device(self, fabric, dev=None):
-        try:
-            dev = self.device_db.allocate_device(fabric,dev)
-            return dev
-        except Exception:
-            raise exceptions.MlxException('Failed to allocate device')
-
-    def deallocate_device(self, fabric, dev):
-        try:
-            dev = self.device_db.deallocate_device(fabric, dev)
-            return dev
-        except Exception:
-            return None
+    def discover_devices(self, pf):
+        return self.pci_utils.get_vfs_info(pf)
 
     def get_fabric_for_dev(self, dev):
         return self.device_db.get_dev_fabric(dev)
@@ -134,7 +107,7 @@ class ResourceManager:
                 fabric_details = self.get_fabric_details(fabric)
                 hca_port = fabric_details['hca_port']
                 pf_mlx_dev = fabric_details['pf_mlx_dev']
-                vf_index = self.pci_utils.get_vf_index(pf_mlx_dev, dev, hca_port)
+                vf_index = self.pci_utils.get_guid_index(pf_mlx_dev, dev, hca_port)
                 try:
                     mac = self.macs_map[fabric][str(vf_index)]
                     devs.append((dev,mac,fabric))

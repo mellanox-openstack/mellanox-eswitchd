@@ -28,10 +28,8 @@ class DeviceDB():
         return self.device_db[fabric]['pf']
 
     def add_fabric(self, fabric, pf, pci_id, hca_port, fabric_type, pf_mlx_dev):
-        list_keys = ('vfs', 'free_vfs', 'reserved_vfs')
         details = {}
-        for key in list_keys:
-            details[key]=[]
+        details['vfs'] = {}
         details['pf'] = pf
         details['pci_id'] = pci_id
         details['hca_port'] = hca_port
@@ -44,37 +42,8 @@ class DeviceDB():
 
     def set_fabric_devices(self, fabric, vfs):
         self.device_db[fabric]['vfs'] = vfs
-        self.device_db[fabric]['free_vfs'] = vfs[:]
-
-    def get_free_vfs(self, fabric):
-        return self.device_db[fabric]['free_vfs']
-
-    def get_free_devices(self, fabric):
-        return self.get_free_vfs(fabric)
 
     def get_dev_fabric(self,dev):
         for fabric in self.device_db:
             if dev in self.device_db[fabric]['vfs']:
                 return fabric
-
-    def allocate_device(self, fabric, dev=None):
-        available_resources = self.device_db[fabric]['free_vfs']
-        try:
-            if dev:
-                available_resources.remove(dev)
-            else:
-                dev = available_resources.pop()
-            return dev
-        except Exception,e:
-            LOG.error("exception on device allocation on dev  %s - No available resources." % dev)
-            raise e
-
-    def deallocate_device(self, fabric, dev):
-        resources = self.device_db[fabric]['vfs']
-        available_resources = self.device_db[fabric]['free_vfs']
-        if dev in resources:
-            available_resources.append(dev)
-            return dev
-        else:
-            return None
-

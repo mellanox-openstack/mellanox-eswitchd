@@ -25,12 +25,28 @@ UNTAGGED_VLAN_ID = 4095
 
 INVALID_MAC = '00:00:00:00:00:00'
 
+# CX3
 ADMIN_GUID_PATH = "/sys/class/infiniband/%s/iov/ports/%s/admin_guids/%s"
 GUID_INDEX_PATH = "/sys/class/infiniband/%s/iov/%s/ports/%s/gid_idx/0"
 PKEY_INDEX_PATH = "/sys/class/infiniband/%s/iov/%s/ports/%s/pkey_idx/%s"
+
+# CX4
+CX4_GUID_NODE_PATH = ('/sys/class/infiniband/%(module)s/device/sriov/'
+                        '%s(vf_num)/node')
+CX4_GUID_PORT_PATH = ('/sys/class/infiniband/%(module)s/device/sriov/'
+                        '%s(vf_num)/port')
+
 
 INVALID_GUID = 'ffffffffffffffff'
 
 IFCS_PATH = '/sys/class/net/*'
 
 CONN_URL = '%(transport)s://%(addr)s:%(port)s'
+
+CX3_VF_DEVICE_TYPE_LIST = ('0x1004', )
+CX4_VF_DEVICE_TYPE_LIST = ('0x1014', '0x1016')
+CX5_VF_DEVICE_TYPE_LIST = ('0x1018', )
+
+CX3_VF_DEVICE_TYPE = 'CX3'
+CX4_VF_DEVICE_TYPE = 'CX4'
+CX5_VF_DEVICE_TYPE = 'CX5'

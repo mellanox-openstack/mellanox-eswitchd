@@ -32,8 +32,29 @@ class pciUtils(object):
     ETH_PORT = ETH_PATH + "/dev_id"
     PF_MLX_DEV_PATH = "/sys/class/infiniband/*"
     VENDOR_PATH = ETH_DEV + '/vendor'
-    DEVICE_TYPE_PATH = ETH_DEV + '/device'
+    DEVICE_TYPE_PATH = ETH_DEV + '/virtfn%(vf_num)s/device'
+    _VIRTFN_RE = re.compile("virtfn(?P<vf_num>\d+)")
     VFS_PATH = ETH_DEV + "/virtfn*"
+
+
+    def get_vfs_info(self, pf):
+        vfs_info = {}
+        try:
+            dev_path = self.ETH_DEV % {'interface': pf}
+            dev_info = os.listdir(dev_path)
+            for dev_filename in dev_info:
+                result = self._VIRTFN_RE.match(dev_filename)
+                if result and result.group('vf_num'):
+                    dev_file = os.path.join(dev_path, dev_filename)
+                    vf_pci = os.readlink(dev_file).strip("./")
+                    vf_num = result.group('vf_num')
+                    vf_device_type = self.get_vf_device_type(pf, vf_num)
+                    vfs_info[vf_pci] = {'vf_num': vf_num,
+                                        'vf_device_type': vf_device_type}
+        except Exception:
+            LOG.exception("PCI device %s not found", pf)
+        return vfs_info
+
 
     def get_dev_attr(self, attr_path):
         try:
@@ -49,15 +70,23 @@ class pciUtils(object):
         else:
             return False
 
-    def get_port_device_type(self, pf):
-        device_type = None
-        device_type_file = pciUtils.DEVICE_TYPE_PATH % {'interface': pf}
+    def get_vf_device_type(self, pf, vf_num):
+        device_vf_type = None
+        device_type_file = pciUtils.DEVICE_TYPE_PATH % {'interface': pf,
+                                                        'vf_num': vf_num}
         try:
             with open(device_type_file, 'r') as fd:
                 device_type = fd.read()
+                device_type = device_type.strip(os.linesep)
+                if device_type in constants.CX3_VF_DEVICE_TYPE_LIST:
+                   device_vf_type = constants.CX3_VF_DEVICE_TYPE
+                elif device_type in constants.CX4_VF_DEVICE_TYPE_LIST:
+                   device_vf_type = constants.CX4_VF_DEVICE_TYPE
+                elif device_type in constants.CX5_VF_DEVICE_TYPE_LIST:
+                   device_vf_type = constants.CX5_VF_DEVICE_TYPE
         except IOError:
             pass
-        return device_type
+        return device_vf_type
 
     def is_sriov_pf(self, pf):
         vfs_path = pciUtils.VFS_PATH % {'interface': pf}
@@ -137,17 +166,12 @@ class pciUtils(object):
             if pci_id == id:
                 return path.split('/')[-1]
 
-    def _get_guid_idx(self, pf_mlx_dev, dev, hca_port):
+    def get_guid_index(self, pf_mlx_dev, dev, hca_port):
+        guid_index = None
         path = constants.GUID_INDEX_PATH % (pf_mlx_dev, dev, hca_port)
         with open(path) as fd:
-            idx = fd.readline().strip()
-        return idx
-
-    def get_vf_index(self, pf_mlx_dev, dev, hca_port):
-        vf_index = None
-        if dev:
-            vf_index = self._get_guid_idx(pf_mlx_dev, dev, hca_port)
-        return vf_index
+            guid_index = fd.readline().strip()
+        return guid_index
 
     def get_eth_port(self, dev):
         port_path = pciUtils.ETH_PORT % {'interface': dev}

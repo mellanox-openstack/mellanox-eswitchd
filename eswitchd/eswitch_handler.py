@@ -90,16 +90,15 @@ class eSwitchHandler(object):
     def _add_fabric(self, fabric, pf, fabric_type):
         self.rm.add_fabric(fabric, pf, fabric_type)
         self._config_port_up(pf)
-        vfs = self.rm.get_free_vfs(fabric)
+        fabric_details = self.rm.get_fabric_details(fabric)
 
-        for vf in vfs:
+        for vf in fabric_details['vfs']:
             self.eswitches[fabric].create_port(vf, constants.VIF_TYPE_HOSTDEV)
 
     def _treat_added_devices(self, devices, vm_ids):
         for device in devices:
             dev, mac, fabric = device
             if fabric:
-                self.rm.allocate_device(fabric, dev=dev)
                 self.eswitches[fabric].attach_vnic(
                     port_name=dev, device_id=vm_ids[dev], vnic_mac=mac)
                 if self.eswitches[fabric].vnic_exists(mac):
@@ -111,7 +110,6 @@ class eSwitchHandler(object):
         for dev, mac in devices:
             fabric = self.rm.get_fabric_for_dev(dev)
             if fabric:
-                self.rm.deallocate_device(fabric, dev=dev)
                 self.eswitches[fabric].detach_vnic(vnic_mac=mac)
             else:
                 LOG.info("No Fabric defined for device %s", dev)
@@ -148,7 +146,6 @@ class eSwitchHandler(object):
                     raise exceptions.MlxException('Failed to attach vnic')
             except (RuntimeError, exceptions.MlxException):
                 LOG.error('Create port operation failed ')
-                self.rm.deallocate_device(fabric, vnic_type, pci_slot)
                 pci_slot = None
         else:
             LOG.error("No eSwitch found for Fabric %s", fabric)
@@ -276,6 +273,16 @@ class eSwitchHandler(object):
     def _config_vf_mac_address(self, fabric, dev, vnic_mac):
         vguid = self._get_guid_from_mac(vnic_mac)
         fabric_details = self.rm.get_fabric_details(fabric)
+        vf_device_type = fabric_details['vfs'][dev]['vf_device_type']
+        if vf_device_type ==  constants.CX3_VF_DEVICE_TYPE:
+            self._config_vf_mac_address_cx3(vguid, dev, fabric_details)
+        elif vf_device_type ==  constants.CX4_VF_DEVICE_TYPE:
+            self._config_vf_mac_address_cx4(vguid, dev, fabric_details)
+        else:
+            LOG.error("Unsupported vf device type: %s ",
+                      vf_device_type)
+
+    def _config_vf_mac_address_cx3(self, vguid, dev, fabric_details):
         hca_port = fabric_details['hca_port']
         pf_mlx_dev = fabric_details['pf_mlx_dev']
         self._config_vf_pkey(
@@ -294,10 +301,33 @@ class eSwitchHandler(object):
             LOG.error("Can't find partial management pkey"
                       "for %s:%s" % (pf_mlx_dev, dev))
 
+    def _config_vf_mac_address_cx4(self, vguid, dev, fabric_details):
+        vf_num = fabric_details['vfs'][dev]['vf_num']
+        pf_mlx_dev = details['pf_mlx_dev']
+        guid_node = constants.CX4_GUID_NODE_PATH % { 'module': pf_mlx_dev,
+                                                     'vf_num': vf_num}
+        guid_port = constants.CX4_GUID_PORT_PATH % { 'module': pf_mlx_dev,
+                                                     'vf_num': vf_num}
+
+        for path in (guid_node, guid_port):
+            cmd = ['ebrctl', 'write-sys', path, vguid]
+            execute(cmd, root_helper=None)
+
+
     def _config_vlan_ib(self, fabric, dev, vlan):
         fabric_details = self.rm.get_fabric_details(fabric)
         hca_port = fabric_details['hca_port']
         pf_mlx_dev = fabric_details['pf_mlx_dev']
+        vf_device_type = fabric_details['vfs'][dev]['vf_device_type']
+        if vf_device_type ==  constants.CX3_VF_DEVICE_TYPE:
+            self._config_vlan_ib_cx3(vlan, pf_mlx_dev, dev, hca_port)
+        elif vf_device_type ==  constants.CX4_VF_DEVICE_TYPE:
+            pass
+        else:
+            LOG.error("Unsupported vf device type: %s ",
+                      vf_device_type)
+
+    def _config_vlan_ib_cx3(self, vlan, pf_mlx_dev, dev, hca_port):
         ppkey_idx = self._get_pkey_idx(str(vlan), pf_mlx_dev, hca_port)
         if ppkey_idx:
             self._config_vf_pkey(

@@ -91,8 +91,8 @@ class MlxEswitchDaemon(object):
         while True:
             try:
                 self._handle_msg()
-            except Exception,e:
-                LOG.error("exception during message handling - %s",e)
+            except Exception as e:
+                LOG.exception("exception during message handling - %s", e)
             if polling_counter == self.max_polling_count:
                 LOG.debug("Resync devices")
             #    self.eswitch_handler.sync_devices()
