@@ -8,10 +8,6 @@ from eswitchd.cli import conn_utils
 from eswitchd.cli import exceptions
 from eswitchd.common import constants
 
-IB_PREFIX = "/sys/class/infiniband"
-pkeys_id_pattern = "%s/[^/]+/iov/[^/]+/ports/[^/]+/pkey_idx/[^/]+$" % IB_PREFIX
-admin_guids_pattern = "%s/[^/]+/iov/ports/[^/]+/admin_guids/[^/]+$" % IB_PREFIX
-files_pattern = "(%s)|(%s)" % (pkeys_id_pattern, admin_guids_pattern)
 client = conn_utils.ConnUtil()
 
 
@@ -94,19 +90,15 @@ def del_port(args):
 
 
 def write_sys(args):
-    if re.match(files_pattern, args.path):
-        try:
-            fd = open(args.path, 'w')
-            fd.write(args.value)
-            fd.close()
-        except Exception as e:
-            sys.stderr.write("Error in write-sys command")
-            sys.stderr.write(e.message)
-            sys.exit(1)
-        sys.exit(0)
-    else:
-        sys.stderr.write("Path %s is not valid for this action" % args.path)
+    try:
+        fd = open(args.path, 'w')
+        fd.write(args.value)
+        fd.close()
+    except Exception as e:
+        sys.stderr.write("Error in write-sys command")
+        sys.stderr.write(e.message)
         sys.exit(1)
+    sys.exit(0)
 
 
 def main():

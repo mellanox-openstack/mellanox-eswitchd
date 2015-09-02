@@ -182,23 +182,17 @@ class pciUtils(object):
         except IOError:
             return
 
-    def get_vfs_macs(self, pf):
-        macs_map = {}
-        vf_mac_pattern = re.compile("vf\s+(\d+)\s+MAC\s+(\S+)\,")
-        cmd = ['ip', 'link', 'show', 'dev', pf]
-        try:
-            result = execute(cmd, root_helper=None)
-            for line in result.splitlines():
-                match = vf_mac_pattern.search(line)
-                if match:
-                    vf_index, mac = match.groups()
-                    macs_map[vf_index] = mac
-        except Exception as e:
-            LOG.warning("Failed to execute command %s due to %s", cmd, e)
-            raise
-        return macs_map
+    def get_vfs_macs_ib(self, fabric_details):
+        if fabric_details['pf_device_type'] == constants.CX3_VF_DEVICE_TYPE:
+            return self.get_vfs_macs_ib_cx3(fabric_details)
+        elif fabric_details['pf_device_type'] == constants.CX4_VF_DEVICE_TYPE:
+            return self.get_vfs_macs_ib_cx4(fabric_details)
 
-    def get_vfs_macs_ib(self, pf, pf_mlx_dev, hca_port):
+    def get_vfs_macs_ib_cx3(self, fabric_details):
+        pf = fabric_details['pf']
+        fabric_type = fabric_details['fabric_type']
+        hca_port = fabric_details['hca_port']
+        pf_mlx_dev = fabric_details['pf_mlx_dev']
         macs_map = {}
         guids_path = constants.ADMIN_GUID_PATH % (pf_mlx_dev, hca_port,
                                                   '[1-9]*')
@@ -207,13 +201,29 @@ class pciUtils(object):
             vf_index = path.split('/')[-1]
             with open(path) as f:
                 guid = f.readline().strip()
-                if guid == constants.INVALID_GUID:
+                if guid == constants.INVALID_GUID_CX3:
                     mac = constants.INVALID_MAC
                 else:
                     head = guid[:6]
                     tail = guid[-6:]
                     mac = ":".join(re.findall('..?', head + tail))
                 macs_map[str(int(vf_index))] = mac
+        return macs_map
+
+    def get_vfs_macs_ib_cx4(self, fabric_details):
+        vfs = fabric_details['vfs']
+        macs_map = {}
+        for vf in vfs.values():
+            vf_num = vf['vf_num']
+            pf_mlx_dev = fabric_details['pf_mlx_dev']
+            guid_path = constants.CX4_GUID_NODE_PATH % {'module': pf_mlx_dev,
+                                                        'vf_num': vf_num}
+            with open(guid_path) as f:
+                guid = f.readline().strip()
+                head = guid[:8]
+                tail = guid[-9:]
+                mac = head + tail
+            macs_map[vf_num] = mac
         return macs_map
 
     def get_device_address(self, hostdev):

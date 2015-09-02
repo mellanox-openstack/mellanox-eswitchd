@@ -15,7 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from oslo_log import log as logging
+import six
 
 LOG = logging.getLogger(__name__)
 
@@ -31,6 +33,7 @@ class DeviceDB():
         details = {}
         details['vfs'] = {}
         details['pf'] = pf
+        details['pf_device_type'] = None
         details['pci_id'] = pci_id
         details['hca_port'] = hca_port
         details['fabric_type'] = fabric_type
@@ -42,6 +45,8 @@ class DeviceDB():
 
     def set_fabric_devices(self, fabric, vfs):
         self.device_db[fabric]['vfs'] = vfs
+        vf = six.next(six.itervalues(vfs))
+        self.device_db[fabric]['pf_device_type'] = vf['vf_device_type']
 
     def get_dev_fabric(self,dev):
         for fabric in self.device_db:

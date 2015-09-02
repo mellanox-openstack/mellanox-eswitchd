@@ -87,14 +87,10 @@ class ResourceManager:
         fabrics = self.device_db.device_db.keys()
         for fabric in fabrics:
             fabric_details = self.device_db.get_fabric_details(fabric)
-            pf = fabric_details['pf']
-            fabric_type = fabric_details['fabric_type']
-            hca_port = fabric_details['hca_port']
-            pf_mlx_dev = fabric_details['pf_mlx_dev']
             try:
-                macs_map[fabric] = self.pci_utils.get_vfs_macs_ib(pf, pf_mlx_dev, hca_port)
+                macs_map[fabric] = self.pci_utils.get_vfs_macs_ib(fabric_details)
             except Exception:
-                LOG.warning("Failed to get vfs macs for fabric %s ",fabric)
+                LOG.exception("Failed to get vfs macs for fabric %s ",fabric)
                 continue
         return macs_map
 
@@ -105,12 +101,15 @@ class ResourceManager:
             fabric = self.get_fabric_for_dev(dev)
             if fabric:
                 fabric_details = self.get_fabric_details(fabric)
-                hca_port = fabric_details['hca_port']
-                pf_mlx_dev = fabric_details['pf_mlx_dev']
-                vf_index = self.pci_utils.get_guid_index(pf_mlx_dev, dev, hca_port)
+                if fabric_details['pf_device_type'] == constants.CX3_VF_DEVICE_TYPE:
+                    hca_port = fabric_details['hca_port']
+                    pf_mlx_dev = fabric_details['pf_mlx_dev']
+                    vf_index = self.pci_utils.get_guid_index(pf_mlx_dev, dev, hca_port)
+                elif fabric_details['pf_device_type'] == constants.CX4_VF_DEVICE_TYPE:
+                    vf_index = fabric_details['vfs'][dev]['vf_num']
                 try:
                     mac = self.macs_map[fabric][str(vf_index)]
-                    devs.append((dev,mac,fabric))
+                    devs.append((dev, mac, fabric))
                 except KeyError:
                     LOG.warning("Failed to retrieve Hostdev MAC for dev %s", dev)
             else:

@@ -34,7 +34,6 @@ INVALID_PKEY = 'none'
 DEFAULT_PKEY_IDX = '0'
 PARTIAL_PKEY_IDX = '1'
 BASE_PKEY = '0x8000'
-PADDING = '0000'
 DEFAULT_MASK = 0x7fff
 DEFAULT_PKEY = '0xffff'
 
@@ -261,19 +260,29 @@ class eSwitchHandler(object):
             idx = fd.readline().strip()
         return idx
 
-    def _get_guid_from_mac(self, mac):
+    def _get_guid_from_mac(self, mac, device_type):
+        guid = None
         if mac == DEFAULT_MAC_ADDRESS:
-            return constants.INVALID_GUID
-        mac = mac.replace(':', '')
-        prefix = mac[:6]
-        suffix = mac[6:]
-        guid = prefix + PADDING + suffix
+            if device_type == constants.CX3_VF_DEVICE_TYPE:
+                guid = constants.INVALID_GUID_CX3
+            elif  device_type == constants.CX4_VF_DEVICE_TYPE:
+                guid = constants.INVALID_GUID_CX4
+        else:
+            if device_type == constants.CX3_VF_DEVICE_TYPE:
+                mac = mac.replace(':', '')
+                prefix = mac[:6]
+                suffix = mac[6:]
+                guid = prefix + '0000' + suffix
+            elif  device_type == constants.CX4_VF_DEVICE_TYPE:
+                prefix = mac[:9]
+                suffix = mac[9:]
+                guid = prefix + '00:00:' + suffix
         return guid
 
     def _config_vf_mac_address(self, fabric, dev, vnic_mac):
-        vguid = self._get_guid_from_mac(vnic_mac)
         fabric_details = self.rm.get_fabric_details(fabric)
         vf_device_type = fabric_details['vfs'][dev]['vf_device_type']
+        vguid = self._get_guid_from_mac(vnic_mac, vf_device_type)
         if vf_device_type ==  constants.CX3_VF_DEVICE_TYPE:
             self._config_vf_mac_address_cx3(vguid, dev, fabric_details)
         elif vf_device_type ==  constants.CX4_VF_DEVICE_TYPE:
@@ -303,7 +312,7 @@ class eSwitchHandler(object):
 
     def _config_vf_mac_address_cx4(self, vguid, dev, fabric_details):
         vf_num = fabric_details['vfs'][dev]['vf_num']
-        pf_mlx_dev = details['pf_mlx_dev']
+        pf_mlx_dev = fabric_details['pf_mlx_dev']
         guid_node = constants.CX4_GUID_NODE_PATH % { 'module': pf_mlx_dev,
                                                      'vf_num': vf_num}
         guid_port = constants.CX4_GUID_PORT_PATH % { 'module': pf_mlx_dev,
