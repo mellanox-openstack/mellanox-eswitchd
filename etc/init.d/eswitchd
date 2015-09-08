@@ -26,7 +26,7 @@ start() {
     echo -n $"Starting $prog: "
     mkdir -p /var/run/$proj
     chown eswitch /var/run/$proj
-    daemon --user eswitch --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf &>/dev/null & echo \$! > $pidfile"
+    daemon --user eswitch --pidfile $pidfile "$exec --config-file /etc/$proj/$proj.conf --log-file $logfile &>/dev/null & echo \$! > $pidfile"
     retval=$?
     echo
     [ $retval -eq 0 ] && touch $lockfile

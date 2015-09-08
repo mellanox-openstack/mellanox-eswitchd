@@ -193,7 +193,7 @@ class PortUp(BasicMessageHandler):
     def execute(self, eswitch_handler):
         fabric = self.msg['fabric']
         mac = self.msg['mac']
-        eswitch_handler.port_up(fabric, mac)
+        #eswitch_handler.port_up(fabric, mac)
         return self.build_response(True, response={})
 
 
@@ -206,7 +206,7 @@ class PortDown(BasicMessageHandler):
     def execute(self, eswitch_handler):
         fabric = self.msg['fabric']
         mac = self.msg['mac']
-        eswitch_handler.port_down(fabric, mac)
+        #eswitch_handler.port_down(fabric, mac)
         return self.build_response(True, response={})
 
 

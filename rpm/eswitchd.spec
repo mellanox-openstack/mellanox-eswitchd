@@ -94,5 +94,5 @@ rm -rf %{buildroo}%{python2_sitelib}/%{srcname}/tests
 %config %attr(0644, root, root) %{_sysconfdir}/eswitchd/rootwrap.d/eswitchd.filters
 %attr(0755, root, eswitch) %{_sysconfdir}/init.d/eswitchd
 %attr(0554, root, root) /usr/bin/eswitchd-rootwrap
-%attr(0554, root, root) /usr/bin/eswitchd
+%attr(0550, root, eswitch) /usr/bin/eswitchd
 %attr(0554, root, root) /usr/bin/ebrctl
