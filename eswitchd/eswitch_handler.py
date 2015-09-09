@@ -29,7 +29,6 @@ from utils import pci_utils
 
 LOG = logging.getLogger(__name__)
 
-DEFAULT_MAC_ADDRESS = '00:00:00:00:00:01'
 INVALID_PKEY = 'none'
 DEFAULT_PKEY_IDX = '0'
 PARTIAL_PKEY_IDX = '1'
@@ -174,7 +173,7 @@ class eSwitchHandler(object):
         if eswitch:
             dev = eswitch.detach_vnic(vnic_mac)
             if dev:
-                self._config_vf_mac_address(fabric, dev, DEFAULT_MAC_ADDRESS)
+                self._config_vf_mac_address(fabric, dev)
         else:
             LOG.warning("No eSwitch found for Fabric %s", fabric)
         return dev
@@ -262,24 +261,24 @@ class eSwitchHandler(object):
 
     def _get_guid_from_mac(self, mac, device_type):
         guid = None
-        if mac == DEFAULT_MAC_ADDRESS:
-            if device_type == constants.CX3_VF_DEVICE_TYPE:
+        if device_type == constants.CX3_VF_DEVICE_TYPE:
+            if mac is None:
                 guid = constants.INVALID_GUID_CX3
-            elif  device_type == constants.CX4_VF_DEVICE_TYPE:
-                guid = constants.INVALID_GUID_CX4
-        else:
-            if device_type == constants.CX3_VF_DEVICE_TYPE:
+            else:
                 mac = mac.replace(':', '')
                 prefix = mac[:6]
                 suffix = mac[6:]
                 guid = prefix + '0000' + suffix
-            elif  device_type == constants.CX4_VF_DEVICE_TYPE:
+        elif  device_type == constants.CX4_VF_DEVICE_TYPE:
+            if mac is None:
+                guid = constants.INVALID_GUID_CX4
+            else:
                 prefix = mac[:9]
                 suffix = mac[9:]
                 guid = prefix + '00:00:' + suffix
         return guid
 
-    def _config_vf_mac_address(self, fabric, dev, vnic_mac):
+    def _config_vf_mac_address(self, fabric, dev, vnic_mac=None):
         fabric_details = self.rm.get_fabric_details(fabric)
         vf_device_type = fabric_details['vfs'][dev]['vf_device_type']
         vguid = self._get_guid_from_mac(vnic_mac, vf_device_type)

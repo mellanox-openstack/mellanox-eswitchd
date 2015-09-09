@@ -38,7 +38,7 @@ CX4_GUID_PORT_PATH = ('/sys/class/infiniband/%(module)s/device/sriov/'
 
 
 INVALID_GUID_CX3 = 'ffffffffffffffff'
-INVALID_GUID_CX4 = '00:00:00:00:00:00:00:00'
+INVALID_GUID_CX4 = 'ff:ff:ff:ff:ff:ff:ff:ff'
 
 IFCS_PATH = '/sys/class/net/*'
 
