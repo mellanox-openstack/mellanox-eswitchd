@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-#
 # Copyright 2013 Mellanox Technologies, Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -316,10 +314,14 @@ class eSwitchHandler(object):
                                                      'vf_num': vf_num}
         guid_port = constants.CX4_GUID_PORT_PATH % { 'module': pf_mlx_dev,
                                                      'vf_num': vf_num}
-
+        guid_poliy = constants.CX4_GUID_POLICY_PATH % { 'module': pf_mlx_dev,
+                                                        'vf_num': vf_num}
         for path in (guid_node, guid_port):
             cmd = ['ebrctl', 'write-sys', path, vguid]
             execute(cmd, root_helper=None)
+
+        cmd = ['ebrctl', 'write-sys', guid_poliy, 'Up\n']
+        execute(cmd, root_helper=None)
 
 
     def _config_vlan_ib(self, fabric, dev, vlan):

@@ -35,6 +35,8 @@ CX4_GUID_NODE_PATH = ('/sys/class/infiniband/%(module)s/device/sriov/'
                         '%(vf_num)s/node')
 CX4_GUID_PORT_PATH = ('/sys/class/infiniband/%(module)s/device/sriov/'
                         '%(vf_num)s/port')
+CX4_GUID_POLICY_PATH = ('/sys/class/infiniband/%(module)s/device/sriov/'
+                        '%(vf_num)s/policy')
 
 
 INVALID_GUID_CX3 = 'ffffffffffffffff'
