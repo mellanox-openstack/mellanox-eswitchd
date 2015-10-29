@@ -36,6 +36,7 @@ DEFAULT_PKEY = '0xffff'
 
 
 class eSwitchHandler(object):
+
     def __init__(self, fabrics=None):
         self.eswitches = {}
         self.pci_utils = pci_utils.pciUtils()
@@ -59,10 +60,10 @@ class eSwitchHandler(object):
                 if (not verify_vendor_pf or
                         not self.pci_utils.is_sriov_pf(pf) or
                         not self.pci_utils.is_ifc_module(pf, fabric_type)):
-                        LOG.error("PF %s must have Mellanox Vendor ID"
-                                  ",SR-IOV and driver module "
-                                  "enabled. Terminating!" % pf)
-                        sys.exit(1)
+                    LOG.error("PF %s must have Mellanox Vendor ID"
+                              ",SR-IOV and driver module "
+                              "enabled. Terminating!" % pf)
+                    sys.exit(1)
 
             if fabric_type:
                 self.eswitches[fabric] = eswitch_db.eSwitchDB()
@@ -136,7 +137,7 @@ class eSwitchHandler(object):
         if eswitch:
             try:
                 if eswitch.attach_vnic(
-                    pci_slot, device_id, vnic_mac, pci_slot):
+                        pci_slot, device_id, vnic_mac, pci_slot):
                     self._config_vf_mac_address(fabric, pci_slot, vnic_mac)
                 else:
                     raise exceptions.MlxException('Failed to attach vnic')
@@ -267,7 +268,7 @@ class eSwitchHandler(object):
                 prefix = mac[:6]
                 suffix = mac[6:]
                 guid = prefix + '0000' + suffix
-        elif  device_type == constants.CX4_VF_DEVICE_TYPE:
+        elif device_type == constants.CX4_VF_DEVICE_TYPE:
             if mac is None:
                 guid = constants.INVALID_GUID_CX4
             else:
@@ -280,9 +281,9 @@ class eSwitchHandler(object):
         fabric_details = self.rm.get_fabric_details(fabric)
         vf_device_type = fabric_details['vfs'][dev]['vf_device_type']
         vguid = self._get_guid_from_mac(vnic_mac, vf_device_type)
-        if vf_device_type ==  constants.CX3_VF_DEVICE_TYPE:
+        if vf_device_type == constants.CX3_VF_DEVICE_TYPE:
             self._config_vf_mac_address_cx3(vguid, dev, fabric_details)
-        elif vf_device_type ==  constants.CX4_VF_DEVICE_TYPE:
+        elif vf_device_type == constants.CX4_VF_DEVICE_TYPE:
             self._config_vf_mac_address_cx4(vguid, dev, fabric_details)
         else:
             LOG.error("Unsupported vf device type: %s ",
@@ -310,12 +311,12 @@ class eSwitchHandler(object):
     def _config_vf_mac_address_cx4(self, vguid, dev, fabric_details):
         vf_num = fabric_details['vfs'][dev]['vf_num']
         pf_mlx_dev = fabric_details['pf_mlx_dev']
-        guid_node = constants.CX4_GUID_NODE_PATH % { 'module': pf_mlx_dev,
-                                                     'vf_num': vf_num}
-        guid_port = constants.CX4_GUID_PORT_PATH % { 'module': pf_mlx_dev,
-                                                     'vf_num': vf_num}
-        guid_poliy = constants.CX4_GUID_POLICY_PATH % { 'module': pf_mlx_dev,
-                                                        'vf_num': vf_num}
+        guid_node = constants.CX4_GUID_NODE_PATH % {'module': pf_mlx_dev,
+                                                    'vf_num': vf_num}
+        guid_port = constants.CX4_GUID_PORT_PATH % {'module': pf_mlx_dev,
+                                                    'vf_num': vf_num}
+        guid_poliy = constants.CX4_GUID_POLICY_PATH % {'module': pf_mlx_dev,
+                                                       'vf_num': vf_num}
         for path in (guid_node, guid_port):
             cmd = ['ebrctl', 'write-sys', path, vguid]
             execute(cmd, root_helper=None)
@@ -323,15 +324,14 @@ class eSwitchHandler(object):
         cmd = ['ebrctl', 'write-sys', guid_poliy, 'Up\n']
         execute(cmd, root_helper=None)
 
-
     def _config_vlan_ib(self, fabric, dev, vlan):
         fabric_details = self.rm.get_fabric_details(fabric)
         hca_port = fabric_details['hca_port']
         pf_mlx_dev = fabric_details['pf_mlx_dev']
         vf_device_type = fabric_details['vfs'][dev]['vf_device_type']
-        if vf_device_type ==  constants.CX3_VF_DEVICE_TYPE:
+        if vf_device_type == constants.CX3_VF_DEVICE_TYPE:
             self._config_vlan_ib_cx3(vlan, pf_mlx_dev, dev, hca_port)
-        elif vf_device_type ==  constants.CX4_VF_DEVICE_TYPE:
+        elif vf_device_type == constants.CX4_VF_DEVICE_TYPE:
             pass
         else:
             LOG.error("Unsupported vf device type: %s ",
