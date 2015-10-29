@@ -191,9 +191,9 @@ class PortUp(BasicMessageHandler):
         super(PortUp, self).__init__(msg)
 
     def execute(self, eswitch_handler):
-        fabric = self.msg['fabric']
-        mac = self.msg['mac']
-        #eswitch_handler.port_up(fabric, mac)
+        # fabric = self.msg['fabric']
+        # mac = self.msg['mac']
+        # eswitch_handler.port_up(fabric, mac)
         return self.build_response(True, response={})
 
 
@@ -204,9 +204,9 @@ class PortDown(BasicMessageHandler):
         super(PortDown, self).__init__(msg)
 
     def execute(self, eswitch_handler):
-        fabric = self.msg['fabric']
-        mac = self.msg['mac']
-        #eswitch_handler.port_down(fabric, mac)
+        # fabric = self.msg['fabric']
+        # mac = self.msg['mac']
+        # eswitch_handler.port_down(fabric, mac)
         return self.build_response(True, response={})
 
 
@@ -228,18 +228,16 @@ class GetEswitchTables(BasicMessageHandler):
 
 
 class MessageDispatch(object):
-    MSG_MAP = {
-       'create_port': AttachVnic,
-       'delete_port': DetachVnic,
-       'set_vlan': SetVLAN,
-       'get_vnics': GetVnics,
-       'port_release': PortRelease,
-       'port_up': PortUp,
-       'port_down': PortDown,
-       'define_fabric_mapping': SetFabricMapping,
-       'plug_nic': PlugVnic,
-       'get_eswitch_tables': GetEswitchTables
-    }
+    MSG_MAP = {'create_port': AttachVnic,
+               'delete_port': DetachVnic,
+               'set_vlan': SetVLAN,
+               'get_vnics': GetVnics,
+               'port_release': PortRelease,
+               'port_up': PortUp,
+               'port_down': PortDown,
+               'define_fabric_mapping': SetFabricMapping,
+               'plug_nic': PlugVnic,
+               'get_eswitch_tables': GetEswitchTables}
 
     def __init__(self, eswitch_handler):
         self.eswitch_handler = eswitch_handler
