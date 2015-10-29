@@ -25,8 +25,8 @@ from eswitchd.common import constants
 
 LOG = logging.getLogger(__name__)
 
-
 class pciUtils(object):
+
     ETH_PATH = "/sys/class/net/%(interface)s"
     ETH_DEV = ETH_PATH + "/device"
     ETH_PORT = ETH_PATH + "/dev_id"
@@ -35,7 +35,6 @@ class pciUtils(object):
     DEVICE_TYPE_PATH = ETH_DEV + '/virtfn%(vf_num)s/device'
     _VIRTFN_RE = re.compile("virtfn(?P<vf_num>\d+)")
     VFS_PATH = ETH_DEV + "/virtfn*"
-
 
     def get_vfs_info(self, pf):
         vfs_info = {}
@@ -54,7 +53,6 @@ class pciUtils(object):
         except Exception:
             LOG.exception("PCI device %s not found", pf)
         return vfs_info
-
 
     def get_dev_attr(self, attr_path):
         try:
@@ -79,11 +77,11 @@ class pciUtils(object):
                 device_type = fd.read()
                 device_type = device_type.strip(os.linesep)
                 if device_type in constants.CX3_VF_DEVICE_TYPE_LIST:
-                   device_vf_type = constants.CX3_VF_DEVICE_TYPE
+                    device_vf_type = constants.CX3_VF_DEVICE_TYPE
                 elif device_type in constants.CX4_VF_DEVICE_TYPE_LIST:
-                   device_vf_type = constants.CX4_VF_DEVICE_TYPE
+                    device_vf_type = constants.CX4_VF_DEVICE_TYPE
                 elif device_type in constants.CX5_VF_DEVICE_TYPE_LIST:
-                   device_vf_type = constants.CX5_VF_DEVICE_TYPE
+                    device_vf_type = constants.CX5_VF_DEVICE_TYPE
         except IOError:
             pass
         return device_vf_type
@@ -189,8 +187,6 @@ class pciUtils(object):
             return self.get_vfs_macs_ib_cx4(fabric_details)
 
     def get_vfs_macs_ib_cx3(self, fabric_details):
-        pf = fabric_details['pf']
-        fabric_type = fabric_details['fabric_type']
         hca_port = fabric_details['hca_port']
         pf_mlx_dev = fabric_details['pf_mlx_dev']
         macs_map = {}
