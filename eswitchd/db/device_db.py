@@ -22,14 +22,15 @@ import six
 LOG = logging.getLogger(__name__)
 
 
-class DeviceDB():
+class DeviceDB(object):
     def __init__(self):
-        self.device_db  = {}
+        self.device_db = {}
 
-    def get_pf(self,fabric):
+    def get_pf(self, fabric):
         return self.device_db[fabric]['pf']
 
-    def add_fabric(self, fabric, pf, pci_id, hca_port, fabric_type, pf_mlx_dev):
+    def add_fabric(self, fabric, pf, pci_id, hca_port, fabric_type,
+                   pf_mlx_dev):
         details = {}
         details['vfs'] = {}
         details['pf'] = pf
@@ -48,7 +49,7 @@ class DeviceDB():
         vf = six.next(six.itervalues(vfs))
         self.device_db[fabric]['pf_device_type'] = vf['vf_device_type']
 
-    def get_dev_fabric(self,dev):
+    def get_dev_fabric(self, dev):
         for fabric in self.device_db:
             if dev in self.device_db[fabric]['vfs']:
                 return fabric
