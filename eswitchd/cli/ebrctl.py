@@ -1,26 +1,37 @@
 #!/usr/bin/python
+# Copyright 2013 Mellanox Technologies, Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import argparse
-import re
 import sys
 
 from eswitchd.cli import conn_utils
 from eswitchd.cli import exceptions
-from eswitchd.common import constants
 
 client = conn_utils.ConnUtil()
 
 
 def parse():
-    """
-    Main method that manages supported CLI commands.
+    """Main method that manages supported CLI commands.
 
     The actions that are supported throught the CLI are:
     write-sys, del-port, allocate-port and add-port
-
     Each action is matched with method that should handle it
     e.g. write-sys action is matched with  write_sys method
     """
+
     parser = argparse.ArgumentParser(prog='ebrctl')
     parser.add_argument('action', action='store_true')
 
