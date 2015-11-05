@@ -33,7 +33,8 @@ mlx_daemon_opts = [
                help=('Default timeout waiting for messages')),
     cfg.IntOpt('max_polling_count',
                default=5,
-               help=('Daemon will do sync after max_polling_count * default_timeout')),
+               help=('Daemon will do sync after max_polling_count '
+                     '* default_timeout')),
     cfg.StrOpt('rootwrap_conf',
                default='/etc/eswitchd/rootwrap.conf',
                help=('eswitchd rootwrap configuration file'))

@@ -13,23 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import glob
 from lxml import etree
-import os
 
 import libvirt
 from oslo_log import log as logging
 
-
 from common import constants
-from common import exceptions
 from db import device_db
 from utils import pci_utils
 
 LOG = logging.getLogger(__name__)
 
 
-class ResourceManager:
+class ResourceManager(object):
 
     def __init__(self):
         self.pci_utils = pci_utils.pciUtils()
@@ -37,7 +33,8 @@ class ResourceManager:
 
     def add_fabric(self, fabric, pf, fabric_type):
         pci_id, hca_port, pf_mlx_dev = self._get_pf_details(pf)
-        self.device_db.add_fabric(fabric, pf, pci_id, hca_port, fabric_type, pf_mlx_dev)
+        self.device_db.add_fabric(fabric, pf, pci_id, hca_port, fabric_type,
+                                  pf_mlx_dev)
         vfs = self.discover_devices(pf)
         LOG.info("PF %s, vfs = %s" % (pf, vfs))
         self.device_db.set_fabric_devices(fabric, vfs)
@@ -63,14 +60,14 @@ class ResourceManager:
         for domain in domains:
             raw_xml = domain.XMLDesc(0)
             tree = etree.XML(raw_xml)
-            hostdevs   = tree.xpath("devices/hostdev/source/address")
+            hostdevs = tree.xpath("devices/hostdev/source/address")
             vm_id = tree.find('uuid').text
             for dev in self._get_attached_hostdevs(hostdevs):
                 devices.append(dev)
                 vm_ids[dev[0]] = vm_id
         return devices, vm_ids
 
-    def get_fabric_pf(self,fabric):
+    def get_fabric_pf(self, fabric):
         return self.device_db.get_pf(fabric)
 
     def get_fabric_details(self, fabric):
@@ -88,9 +85,10 @@ class ResourceManager:
         for fabric in fabrics:
             fabric_details = self.device_db.get_fabric_details(fabric)
             try:
-                macs_map[fabric] = self.pci_utils.get_vfs_macs_ib(fabric_details)
+                macs_map[fabric] = \
+                    self.pci_utils.get_vfs_macs_ib(fabric_details)
             except Exception:
-                LOG.exception("Failed to get vfs macs for fabric %s ",fabric)
+                LOG.exception("Failed to get vfs macs for fabric %s ", fabric)
                 continue
         return macs_map
 
@@ -101,24 +99,28 @@ class ResourceManager:
             fabric = self.get_fabric_for_dev(dev)
             if fabric:
                 fabric_details = self.get_fabric_details(fabric)
-                if fabric_details['pf_device_type'] == constants.CX3_VF_DEVICE_TYPE:
+                if fabric_details['pf_device_type'] == \
+                   constants.CX3_VF_DEVICE_TYPE:
                     hca_port = fabric_details['hca_port']
                     pf_mlx_dev = fabric_details['pf_mlx_dev']
-                    vf_index = self.pci_utils.get_guid_index(pf_mlx_dev, dev, hca_port)
-                elif fabric_details['pf_device_type'] == constants.CX4_VF_DEVICE_TYPE:
+                    vf_index = self.pci_utils.get_guid_index(pf_mlx_dev, dev,
+                                                             hca_port)
+                elif fabric_details['pf_device_type'] == \
+                    constants.CX4_VF_DEVICE_TYPE:
                     vf_index = fabric_details['vfs'][dev]['vf_num']
                 try:
                     mac = self.macs_map[fabric][str(vf_index)]
                     devs.append((dev, mac, fabric))
                 except KeyError:
-                    LOG.warning("Failed to retrieve Hostdev MAC for dev %s", dev)
+                    LOG.warning("Failed to retrieve Hostdev MAC for dev %s",
+                                dev)
             else:
                 LOG.info("No Fabric defined for device %s", hostdev)
         return devs
 
     def _get_pf_details(self, pf):
         hca_port = self.pci_utils.get_eth_port(pf)
-        pci_id  = self.pci_utils.get_pf_pci(pf)
-        pf_pci_id  = self.pci_utils.get_pf_pci(pf, 'normal')
+        pci_id = self.pci_utils.get_pf_pci(pf)
+        pf_pci_id = self.pci_utils.get_pf_pci(pf, 'normal')
         pf_mlx_dev = self.pci_utils.get_pf_mlx_dev(pf_pci_id)
         return (pci_id, hca_port, pf_mlx_dev)

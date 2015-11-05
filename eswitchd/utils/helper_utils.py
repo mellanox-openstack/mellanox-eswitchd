@@ -20,6 +20,6 @@ from eswitchd.common import constants
 
 
 def set_conn_url(transport, addr, port):
-    """ Return connection string for using in ZMQ connect """
+    """Return connection string for using in ZMQ connect """
     return constants.CONN_URL % {'transport': transport,
                                  'port': port, 'addr': addr}

@@ -19,13 +19,14 @@
 import json
 import sys
 import zmq
+
 from oslo_config import cfg
 from oslo_log import log as logging
+
 from common import config
 from eswitch_handler import eSwitchHandler
-from utils.helper_utils import set_conn_url
 import msg_handler as message
-
+from utils.helper_utils import set_conn_url
 
 LOG = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ class MlxEswitchDaemon(object):
                     fabrics.append((fabric, pf))
                 except ValueError as ex:
                     LOG.error(_("Invalid fabric: "
-                                "'%(entry)s' - ",
+                                "'%(entry)s' - "
                                 "Service terminated!"),
                               locals())
                     raise
@@ -95,10 +96,11 @@ class MlxEswitchDaemon(object):
                 LOG.exception("exception during message handling - %s", e)
             if polling_counter == self.max_polling_count:
                 LOG.debug("Resync devices")
-            #    self.eswitch_handler.sync_devices()
+            # self.eswitch_handler.sync_devices()
                 polling_counter = 0
             else:
-                polling_counter+=1
+                polling_counter += 1
+
 
 def main():
     config.init(sys.argv[1:])
@@ -106,13 +108,13 @@ def main():
     try:
         daemon = MlxEswitchDaemon()
         daemon.start()
-    except Exception,e:
-        LOG.exception("Failed to start EswitchDaemon - Daemon terminated! %s",e)
+    except Exception as e:
+        LOG.exception("Failed to start EswitchDaemon - Daemon terminated! %s",
+                      e)
         sys.exit(1)
 
     daemon.daemon_loop()
 
+
 if __name__ == '__main__':
     main()
-
-

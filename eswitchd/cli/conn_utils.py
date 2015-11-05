@@ -19,8 +19,6 @@ from oslo_config import cfg
 import zmq
 
 from eswitchd.cli import exceptions
-from eswitchd.common import config
-from eswitchd.common import constants
 from eswitchd.utils.helper_utils import set_conn_url
 
 REQUEST_TIMEOUT = 50000
@@ -35,7 +33,7 @@ class ConnUtil(object):
         addr = cfg.CONF.DAEMON.socket_os_addr
         self.conn_url = set_conn_url(transport, addr, port)
 
-    def send_msg(self,msg):
+    def send_msg(self, msg):
         context = zmq.Context()
         socket = context.socket(zmq.REQ)
         socket.setsockopt(zmq.LINGER, 0)
@@ -52,7 +50,7 @@ class ConnUtil(object):
                     response = self.parse_response_msg(response_msg)
                     return response
             else:
-               print 'no result received'
+                print ('no result received')
         finally:
             socket.close()
             context.term()
@@ -65,12 +63,13 @@ class ConnUtil(object):
                 return msg['response']
             return
         elif msg['status'] == 'FAIL':
-            error_msg = "Action  %s failed: %s" %(msg['action'], msg['reason'])
+            error_msg = "Action %s failed: %s" % (msg['action'], msg['reason'])
         else:
             error_msg = "Unknown operation status %s" % msg['status']
         raise exceptions.MlxException(error_msg)
 
-    def allocate_nic(self, vnic_mac, device_id, fabric, vnic_type, dev_name=None):
+    def allocate_nic(self, vnic_mac, device_id, fabric, vnic_type,
+                     dev_name=None):
         msg = json.dumps({'action': 'create_port',
                           'vnic_mac': vnic_mac,
                           'device_id': device_id,
@@ -92,7 +91,6 @@ class ConnUtil(object):
         recv_msg = self.send_msg(msg)
         dev = recv_msg['dev']
         return dev
-
 
     def deallocate_nic(self, vnic_mac, fabric):
         msg = json.dumps({'action': 'delete_port',

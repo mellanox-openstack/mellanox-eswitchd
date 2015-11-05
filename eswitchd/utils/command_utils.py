@@ -18,15 +18,17 @@
 import os
 import shlex
 import subprocess
-from oslo_log import log as logging
+
 from oslo_config import cfg
+from oslo_log import log as logging
 
 LOG = logging.getLogger(__name__)
 
 
 def get_root_helper():
-    root_helper =  'sudo eswitchd-rootwrap %s' % cfg.CONF.DAEMON.rootwrap_conf
+    root_helper = 'sudo eswitchd-rootwrap %s' % cfg.CONF.DAEMON.rootwrap_conf
     return root_helper
+
 
 def execute(cmd, root_helper=None, process_input=None, addl_env=None,
             check_exit_code=True, return_stderr=False):
@@ -47,11 +49,12 @@ def execute(cmd, root_helper=None, process_input=None, addl_env=None,
                         obj.communicate())
     obj.stdin.close()
     m = ("\nCommand: %s\nExit code: %s\nStdout: %r\nStderr: %r" %
-        (cmd, obj.returncode, _stdout, _stderr))
+         (cmd, obj.returncode, _stdout, _stderr))
     LOG.info(m)
     if obj.returncode and check_exit_code:
         raise RuntimeError(m)
     return return_stderr and (_stdout, _stderr) or _stdout
+
 
 def execute_bg(cmd, root_helper=None, log=None):
     if not root_helper:
@@ -59,6 +62,3 @@ def execute_bg(cmd, root_helper=None, log=None):
     cmd = shlex.split(root_helper) + cmd
     cmd = map(str, cmd)
     LOG.info("Running command: " + " ".join(cmd))
-    env = os.environ.copy()
-    obj = subprocess.Popen(cmd, stdout=log, stderr=log)
-    

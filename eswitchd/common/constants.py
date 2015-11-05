@@ -32,9 +32,9 @@ PKEY_INDEX_PATH = "/sys/class/infiniband/%s/iov/%s/ports/%s/pkey_idx/%s"
 
 # CX4
 CX4_GUID_NODE_PATH = ('/sys/class/infiniband/%(module)s/device/sriov/'
-                        '%(vf_num)s/node')
+                      '%(vf_num)s/node')
 CX4_GUID_PORT_PATH = ('/sys/class/infiniband/%(module)s/device/sriov/'
-                        '%(vf_num)s/port')
+                      '%(vf_num)s/port')
 CX4_GUID_POLICY_PATH = ('/sys/class/infiniband/%(module)s/device/sriov/'
                         '%(vf_num)s/policy')
 

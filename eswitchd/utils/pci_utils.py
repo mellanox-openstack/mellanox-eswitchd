@@ -25,6 +25,7 @@ from eswitchd.common import constants
 
 LOG = logging.getLogger(__name__)
 
+
 class pciUtils(object):
 
     ETH_PATH = "/sys/class/net/%(interface)s"

@@ -1,19 +1,38 @@
 #!/usr/bin/python
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+#
+# Copyright 2013 Mellanox Technologies, Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import sys
+
 from eswitchd.cli import conn_utils
 from eswitchd.cli import exceptions
-#from eswitchd.common import constants
 
 action = sys.argv[1]
 client = conn_utils.ConnUtil()
 
-def pprint_table(out,table):
+
+def pprint_table(out, table):
     """Prints out a table of data, padded for alignment
+
     @param out: Output stream (file-like object)
     @param table: The table to print. A list of lists.
-    Each row must have the same number of columns. """
-    
+    Each row must have the same number of columns.
+    """
+
     def get_max_width(table, index):
         """Get the maximum width of the given column index"""
         return max([len(str(row[index])) for row in table])
@@ -31,26 +50,25 @@ def pprint_table(out,table):
             col = str(row[i]).rjust(col_paddings[i] + 2)
             print >> out, col,
         print >> out
-   
-    
+
+
 def main():
     if action == 'get-tables':
         fabric = sys.argv[2]
         try:
             result = client.get_tables(fabric)
             for fabric, tables in result.items():
-                print "FABRIC = %s" % fabric
-                print"========================"
+                print ("FABRIC = %s" % fabric)
+                print ("========================")
                 for table, data in tables.items():
-                    print "TABLE: %s" % table
+                    print ("TABLE: %s" % table)
                     pprint_table(sys.stdout, data)
-                    print"========================"
+                    print ("========================")
         except exceptions.MlxException as e:
             sys.stderr.write("Error in get-tables command")
             sys.stderr.write(e.message)
             sys.exit(1)
-        # sys.stdout.write(str(result))
         sys.exit(0)
-        
+
 if __name__ == '__main__':
     main()
