@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
 import sys
 
 from eswitchd.cli import conn_utils
@@ -44,12 +45,12 @@ def pprint_table(out, table):
 
     for row in table:
         # left col
-        print >> out, row[0].ljust(col_paddings[0] + 1),
+        print(row[0].ljust(col_paddings[0] + 1), file=out)
         # rest of the cols
         for i in range(1, len(row)):
             col = str(row[i]).rjust(col_paddings[i] + 2)
-            print >> out, col,
-        print >> out
+            print(col, file=out)
+        print(file=out)
 
 
 def main():
