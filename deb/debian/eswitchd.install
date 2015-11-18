@@ -1,3 +1,4 @@
 etc/eswitchd/eswitchd.conf etc/eswitchd
 etc/eswitchd/rootwrap.conf etc/eswitchd/
 etc/eswitchd/rootwrap.d/eswitchd.filters etc/eswitchd/rootwrap.d/
+etc/sudoers.d/eswitch-sudoers etc/sudoers.d/

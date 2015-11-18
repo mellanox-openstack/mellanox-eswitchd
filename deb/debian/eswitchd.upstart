@@ -13,7 +13,6 @@ end script
 
 script
         ESWITCHD_CONF=/etc/eswitchd/eswitchd.conf
-        . /etc/default/eswitchd
 
         exec start-stop-daemon --start --chuid eswitch --exec /usr/bin/eswitchd -- --config-file $ESWITCHD_CONF
 end script
