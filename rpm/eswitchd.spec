@@ -73,12 +73,14 @@ install -d -m 755 %{buildroot}%{_sysconfdir}/eswitchd
 install -d -m 755 %{buildroot}%{_sysconfdir}/eswitchd/rootwrap.d/
 install -d -m 755 %{buildroot}%{_sysconfdir}/init.d
 install -d -m 755 %{buildroot}%{_sysconfdir}/sudoers.d/
+install -d -m 755 %{buildroot}%{_sysconfdir}/logrotate.d/
 
 mv etc/eswitchd/eswitchd.conf %{buildroot}%{_sysconfdir}/eswitchd
 mv etc/init.d/eswitchd %{buildroot}%{_sysconfdir}/init.d/eswitchd
 mv etc/eswitchd/rootwrap.conf %{buildroot}%{_sysconfdir}/eswitchd
 mv etc/eswitchd/rootwrap.d/eswitchd.filters %{buildroot}%{_sysconfdir}/eswitchd/rootwrap.d/eswitchd.filters
-mv etc/eswitchd/sudoers.d/eswitch-sudoers %{buildroot}%{_sysconfdir}/eswitchd/sudoers.d/eswitch-sudoers
+mv etc/sudoers.d/eswitch-sudoers %{buildroot}%{_sysconfdir}/sudoers.d/eswitch-sudoers
+mv etc/logrotate.d/eswitchd %{buildroot}%{_sysconfdir}/logrotate.d/eswitchd
 rm -rf %{buildroot}/usr/etc
 rm -rf %{buildroo}%{python2_sitelib}/%{srcname}/tests
 
@@ -94,8 +96,10 @@ rm -rf %{buildroo}%{python2_sitelib}/%{srcname}/tests
 %config(noreplace) %attr(0640, root, eswitch) %{_sysconfdir}/eswitchd/eswitchd.conf
 %config %attr(0755, root, root) %{_sysconfdir}/eswitchd/rootwrap.conf
 %config %attr(0644, root, root) %{_sysconfdir}/eswitchd/rootwrap.d/eswitchd.filters
+%attr(0640, root, root) /etc/sudoers.d/eswitch-sudoers
+%attr(0640, root, root) /etc/logrotate.d/eswitchd
 %attr(0755, root, eswitch) %{_sysconfdir}/init.d/eswitchd
 %attr(0755, root, root) /usr/bin/eswitchd-rootwrap
 %attr(0550, root, eswitch) /usr/bin/eswitchd
 %attr(0554, root, root) /usr/bin/ebrctl
-%attr(0640, root, root) etc/eswitchd/sudoers.d/eswitch-sudoers
+
