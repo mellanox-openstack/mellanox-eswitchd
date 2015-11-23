@@ -55,8 +55,8 @@ class eSwitchDB(object):
         for port in self.port_table.values():
             vnic_mac = port['vnic']
             state = port['state']
-            device_id = self.port_policy[vnic_mac]['device_id']
             if vnic_mac and state == constants.VPORT_STATE_ATTACHED:
+                device_id = self.port_policy[vnic_mac]['device_id']
                 vnics[vnic_mac] = {'mac': vnic_mac, 'device_id': device_id}
         return vnics
 
