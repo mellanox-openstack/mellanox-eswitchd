@@ -19,6 +19,7 @@ from oslo_config import cfg
 import zmq
 
 from eswitchd.cli import exceptions
+from eswitchd.common import constants
 from eswitchd.utils.helper_utils import set_conn_url
 
 REQUEST_TIMEOUT = 50000
@@ -28,9 +29,9 @@ class ConnUtil(object):
     def __init__(self):
         self.__conn = None
 
-        transport = cfg.CONF.DAEMON.socket_os_transport
-        port = cfg.CONF.DAEMON.socket_os_port
-        addr = cfg.CONF.DAEMON.socket_os_addr
+        transport = constants.SOCKET_OS_TRANSPORT
+        port = constants.SOCKET_OS_PORT
+        addr = constants.SOCKET_OS_ADDR
         self.conn_url = set_conn_url(transport, addr, port)
 
     def send_msg(self, msg):

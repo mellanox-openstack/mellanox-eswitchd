@@ -24,6 +24,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 
 from common import config
+from common import constants
 from eswitch_handler import eSwitchHandler
 import msg_handler as message
 from utils.helper_utils import set_conn_url
@@ -64,9 +65,9 @@ class MlxEswitchDaemon(object):
     def _init_connections(self):
         context = zmq.Context()
         self.socket_os = context.socket(zmq.REP)
-        os_transport = cfg.CONF.DAEMON.socket_os_transport
-        os_port = cfg.CONF.DAEMON.socket_os_port
-        os_addr = cfg.CONF.DAEMON.socket_os_addr
+        os_transport = constants.SOCKET_OS_TRANSPORT
+        os_port = constants.SOCKET_OS_PORT
+        os_addr = constants.SOCKET_OS_ADDR
         self.conn_os_url = set_conn_url(os_transport, os_addr, os_port)
 
         self.socket_os.bind(self.conn_os_url)
